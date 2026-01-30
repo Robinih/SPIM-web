@@ -215,18 +215,24 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="card-title mb-0">Registered Farmers</h5>
-                    <div class="d-flex gap-2">
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-md-3">
                         <input type="text" id="farmersSearch" class="form-control form-control-sm"
-                            placeholder="Search farmers..." style="width: 200px;"
+                            placeholder="Search farmers..."
                             onkeyup="filterTable('farmersTable', 'farmersSearch', 'farmersFilter', 3)">
+                    </div>
+                    <div class="col-md-3">
                         <!-- Use Barangay Column Index which is 4 (0-based: Checkbox, Name, User, Muni, Brgy) -->
-                        <select id="farmersFilter" class="form-select form-select-sm" style="width: 150px;"
+                        <select id="farmersFilter" class="form-select form-select-sm"
                             onchange="filterTable('farmersTable', 'farmersSearch', 'farmersFilter', 4)">
                             <option value="all">All Barangays</option>
                             {% for brgy in unique_barangays %}
                             <option value="{{ brgy }}">{{ brgy }}</option>
                             {% endfor %}
                         </select>
+                    </div>
+                    <div class="col-auto ms-auto">
                         <button type="button" class="btn btn-danger btn-sm" onclick="submitBatchDeleteFarmers()">
                             Delete Selected
                         </button>
@@ -417,13 +423,22 @@
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="card-title mb-0">Incoming Field Reports</h5>
-                <select id="reportsFilter" class="form-select form-select-sm" style="width: 150px;"
-                    onchange="filterTable('reportsTable', '', 'reportsFilter', 5)">
-                    <option value="all">All Status</option>
-                    <option value="pending">Pending</option>
-                    <option value="read">Read</option>
-                    <option value="resolved">Resolved</option>
-                </select>
+            </div>
+            <div class="row g-2 mb-3">
+                <div class="col-md-3">
+                    <input type="text" id="reportsSearch" class="form-control form-control-sm"
+                        placeholder="Search reports..."
+                        onkeyup="filterTable('reportsTable', 'reportsSearch', 'reportsFilter', 5)">
+                </div>
+                <div class="col-md-3">
+                    <select id="reportsFilter" class="form-select form-select-sm"
+                        onchange="filterTable('reportsTable', 'reportsSearch', 'reportsFilter', 5)">
+                        <option value="all">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="read">Read</option>
+                        <option value="resolved">Resolved</option>
+                    </select>
+                </div>
             </div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle" id="reportsTable">
