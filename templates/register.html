@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">Register</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="registerForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="full_name" class="form-label">Full Name</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
+                                <input type="text" class="form-control" id="full_name" name="full_name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                <input type="text" class="form-control" id="username" name="username" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                            <button class="btn btn-outline-secondary" type="button"
+                                onclick="togglePassword('password', this)">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="municipality" class="form-label">Municipality</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+                                <select class="form-select" id="municipality" name="municipality" required>
+                                    <option value="Naic" selected>Naic</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="street_barangay" class="form-label">Barangay</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-map"></i></span>
+                                <select class="form-select" id="street_barangay" name="street_barangay" required>
+                                    <option value="" selected disabled>Select Barangay...</option>
+                                    <option value="Bagong Karsada">Bagong Karsada</option>
+                                    <option value="Balsahan">Balsahan</option>
+                                    <option value="Bancaan">Bancaan</option>
+                                    <option value="Bucana Malaki">Bucana Malaki</option>
+                                    <option value="Bucana Sasahan">Bucana Sasahan</option>
+                                    <option value="Calubcob">Calubcob</option>
+                                    <option value="Capt. C. Nazareno (Poblacion)">Capt. C. Nazareno (Poblacion)</option>
+                                    <option value="Gomez-Zamora (Poblacion)">Gomez-Zamora (Poblacion)</option>
+                                    <option value="Halang">Halang</option>
+                                    <option value="Humbac">Humbac</option>
+                                    <option value="Ibayo Estacion">Ibayo Estacion</option>
+                                    <option value="Ibayo Silangan">Ibayo Silangan</option>
+                                    <option value="Kanluran">Kanluran</option>
+                                    <option value="Labac">Labac</option>
+                                    <option value="Latoria">Latoria</option>
+                                    <option value="Mabolo">Mabolo</option>
+                                    <option value="Makina">Makina</option>
+                                    <option value="Malainen Bago">Malainen Bago</option>
+                                    <option value="Malainen Luma">Malainen Luma</option>
+                                    <option value="Molino">Molino</option>
+                                    <option value="Munting Mapino">Munting Mapino</option>
+                                    <option value="Muzon">Muzon</option>
+                                    <option value="Palangue 1 (Central)">Palangue 1 (Central)</option>
+                                    <option value="Palangue 2 & 3">Palangue 2 & 3</option>
+                                    <option value="Sabang">Sabang</option>
+                                    <option value="San Roque">San Roque</option>
+                                    <option value="Santulan">Santulan</option>
+                                    <option value="Sapa">Sapa</option>
+                                    <option value="Timalan Balsahan">Timalan Balsahan</option>
+                                    <option value="Timalan Concepcion">Timalan Concepcion</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-success w-100">Register</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

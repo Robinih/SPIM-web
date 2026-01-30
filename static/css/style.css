@@ -1,0 +1,35 @@
+:root {
+    --color-pest: #d32f2f;
+    --color-beneficial: #388e3c;
+}
+
+.text-pest {
+    color: var(--color-pest) !important;
+}
+
+.text-beneficial {
+    color: var(--color-beneficial) !important;
+}
+
+.border-pest {
+    border: 3px solid var(--color-pest) !important;
+}
+
+.border-beneficial {
+    border: 3px solid var(--color-beneficial) !important;
+}
+
+.bg-pest {
+    background-color: var(--color-pest) !important;
+    color: white;
+}
+
+.bg-beneficial {
+    background-color: var(--color-beneficial) !important;
+    color: white;
+}
+
+.card-img-top {
+    height: 200px;
+    object-fit: cover;
+}

@@ -1,0 +1,703 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="mb-3">Admin Console</h2>
+    </div>
+</div>
+
+<ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="heatmap-tab" data-bs-toggle="tab" data-bs-target="#heatmap" type="button"
+            role="tab">Live Heatmap</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" type="button"
+            role="tab">Report Logs</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="farmers-tab" data-bs-toggle="tab" data-bs-target="#farmers" type="button"
+            role="tab">Farmer Management</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="export-tab" data-bs-toggle="tab" data-bs-target="#export" type="button"
+            role="tab">Export Data</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="analytics-tab" data-bs-toggle="tab" data-bs-target="#analytics" type="button"
+            role="tab">Analytics</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="alerts-tab" data-bs-toggle="tab" data-bs-target="#alerts" type="button"
+            role="tab">Alerts</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports" type="button"
+            role="tab">Field Reports</button>
+    </li>
+</ul>
+
+<div class="tab-content" id="adminTabsContent">
+    <!-- TAB 1: Live Heatmap -->
+    <div class="tab-pane fade show active" id="heatmap" role="tabpanel">
+        <div class="card shadow">
+            <div class="card-body p-0">
+                <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+                    <h5 class="mb-0">Live Heatmap</h5>
+                    <div class="btn-group">
+                        <a href="{{ url_for('admin_dashboard', timeframe='daily') }}"
+                            class="btn btn-sm btn-outline-primary {% if current_timeframe == 'daily' or not current_timeframe %}active{% endif %}">Daily</a>
+                        <a href="{{ url_for('admin_dashboard', timeframe='weekly') }}"
+                            class="btn btn-sm btn-outline-primary {% if current_timeframe == 'weekly' %}active{% endif %}">Weekly</a>
+                        <a href="{{ url_for('admin_dashboard', timeframe='monthly') }}"
+                            class="btn btn-sm btn-outline-primary {% if current_timeframe == 'monthly' %}active{% endif %}">Monthly</a>
+                    </div>
+                </div>
+                <div id="map" style="height: 600px; width: 100%;"></div>
+
+                <!-- Heatmap Legend -->
+                <div
+                    style="position: absolute; bottom: 30px; left: 20px; z-index: 1000; background: white; padding: 10px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.2);">
+                    <h6 class="mb-2"><strong>Target Status</strong></h6>
+                    <div class="d-flex align-items-center mb-1">
+                        <span
+                            style="display:inline-block; width: 15px; height: 15px; background: red; border-radius: 50%; margin-right: 8px;"></span>
+                        <small>High (>15 Pests)</small>
+                    </div>
+                    <div class="d-flex align-items-center mb-1">
+                        <span
+                            style="display:inline-block; width: 15px; height: 15px; background: orange; border-radius: 50%; margin-right: 8px;"></span>
+                        <small>Medium (6-15 Pests)</small>
+                    </div>
+                    <div class="d-flex align-items-center mb-1">
+                        <span
+                            style="display:inline-block; width: 15px; height: 15px; background: green; border-radius: 50%; margin-right: 8px;"></span>
+                        <small>Beneficials Dominant</small>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span
+                            style="display:inline-block; width: 15px; height: 15px; background: gray; border-radius: 50%; margin-right: 8px;"></span>
+                        <small>No Recent Activity</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: Report Logs -->
+    <div class="tab-pane fade" id="logs" role="tabpanel">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="card-title mb-0">All Detection Records</h5>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="submitBatchDeleteRecords()">
+                        Delete Selected
+                    </button>
+                </div>
+
+                <form id="batchDeleteRecordsForm" action="{{ url_for('batch_delete_records') }}" method="POST"
+                    onsubmit="return confirm('Delete selected records permanently?');">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 40px;"><input type="checkbox" id="selectAllLogs"
+                                            onclick="toggleAll('selectAllLogs', 'record_ids')"></th>
+                                    <th>Date</th>
+                                    <th>Farmer</th>
+                                    <th>Insect</th>
+                                    <th>Type</th>
+                                    <th>Count</th>
+                                    <th>Conf.</th>
+                                    <th>Image</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in logs %}
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" name="record_ids" value="{{ log.type }}_{{ log.id }}">
+                                    </td>
+                                    <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <strong>{{ log.user.full_name }}</strong><br>
+                                        <small class="text-muted">{{ log.user.municipality }}</small>
+                                    </td>
+                                    <td>
+                                        {{ log.insect_name }}
+                                    </td>
+                                    <td>
+                                        {% if log.is_beneficial is not none %}
+                                        {% if log.is_beneficial %}
+                                        <span class="badge bg-beneficial">Beneficial</span>
+                                        {% else %}
+                                        <span class="badge bg-pest">Pest</span>
+                                        {% endif %}
+                                        {% else %}
+                                        <span class="badge bg-secondary">Unknown</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="fw-bold">{{ log.count_val }}</span>
+                                    </td>
+                                    <td>
+                                        {% if log.confidence %}
+                                        {{ "%.1f"|format(log.confidence * 100) }}%
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('static', filename='uploads/' + log.image_file) }}"
+                                            target="_blank">
+                                            <img src="{{ url_for('static', filename='uploads/' + log.image_file) }}"
+                                                class="img-thumbnail"
+                                                style="width: 50px; height: 50px; object-fit: cover;">
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {# Keep individual delete #}
+                                        <button type="button" class="btn btn-danger btn-sm"
+                                            onclick="deleteSingleRecord('{{ log.type }}', '{{ log.id }}')">
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="9" class="text-center text-muted py-4">No records found.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 3: Farmer Management -->
+    <div class="tab-pane fade" id="farmers" role="tabpanel">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="card-title mb-0">Registered Farmers</h5>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="submitBatchDeleteFarmers()">
+                        Delete Selected
+                    </button>
+                </div>
+
+                <form id="batchDeleteFarmersForm" action="{{ url_for('batch_delete_farmers') }}" method="POST"
+                    onsubmit="return confirm('Delete selected farmers? This cannot be undone.');">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 40px;"><input type="checkbox" id="selectAllFarmers"
+                                            onclick="toggleAll('selectAllFarmers', 'user_ids')"></th>
+                                    <th>Full Name</th>
+                                    <th>Username</th>
+                                    <th>Municipality</th>
+                                    <th>Barangay</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for farmer in farmers %}
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" name="user_ids" value="{{ farmer.id }}">
+                                    </td>
+                                    <td>{{ farmer.full_name }}</td>
+                                    <td>{{ farmer.username }}</td>
+                                    <td>{{ farmer.municipality }}</td>
+                                    <td>{{ farmer.street_barangay }}</td>
+                                    <td>
+                                        <button type="button" class="btn btn-warning btn-sm"
+                                            onclick="openSetPasswordModal('{{ farmer.id }}', '{{ farmer.username }}')">
+                                            Change Password
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted">No farmers registered.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+
+
+    <!-- TAB: Export Data -->
+    <div class="tab-pane fade" id="export" role="tabpanel">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">Export Data</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Download detection and counting records as a CSV file (compatible with Excel). You
+                    can filter by date range.</p>
+                <form action="{{ url_for('export_data') }}" method="POST">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" class="form-control" name="start_date">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">End Date</label>
+                            <input type="date" class="form-control" name="end_date">
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-success w-100">
+                                Download CSV
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB: Analytics -->
+    <div class="tab-pane fade" id="analytics" role="tabpanel">
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Global Activity Timeline (All Farmers)</h5>
+                    </div>
+                    <div class="card-body" style="height: 400px;">
+                        <canvas id="adminDailyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Total Insect Breakdown</h5>
+                    </div>
+                    <div class="card-body" style="height: 400px;">
+                        <canvas id="adminInsectChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 4: Alerts -->
+    <div class="tab-pane fade" id="alerts" role="tabpanel">
+        <div class="row">
+            <div class="col-md-5">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0">Broadcast Alert</h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ url_for('send_notification') }}" method="POST">
+                            <div class="mb-3">
+                                <label class="form-label">Target Audience</label>
+                                <select class="form-select" name="target_type" id="target_type"
+                                    onchange="toggleTargetInput()">
+                                    <option value="all">All Farmers</option>
+                                    <option value="municipality">Specific Municipality</option>
+                                    <option value="user">Specific Farmer</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3 d-none" id="div_municipality">
+                                <label class="form-label">Select Municipality</label>
+                                <select class="form-select" name="target_value" id="select_municipality">
+                                    <option value="Naic">Naic</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3 d-none" id="div_user">
+                                <label class="form-label">Select Farmer</label>
+                                <select class="form-select" name="target_value_user" id="select_user">
+                                    {% for farmer in farmers %}
+                                    <option value="{{ farmer.id }}">{{ farmer.full_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Alert Level</label>
+                                <select class="form-select" name="level">
+                                    <option value="Low">Low (Advisory)</option>
+                                    <option value="Medium">Medium (Warning)</option>
+                                    <option value="High">High (Critical)</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Message</label>
+                                <textarea class="form-control" name="message" rows="3" required
+                                    placeholder="e.g. Swarm detected in Barangay X..."></textarea>
+                            </div>
+
+                            <button type="submit" class="btn btn-danger w-100">Send Alert</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-7">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h5 class="mb-0">Recent Alerts</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            History of sent alerts will appear here (requires fetching Notifications in app.py).
+                            <br>Currently, check the console or user apps for receipt.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 5: Field Reports -->
+    <div class="tab-pane fade" id="reports" role="tabpanel">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Incoming Field Reports</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Farmer</th>
+                                <th>Location</th>
+                                <th>Description</th>
+                                <th>Photo</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rec in recommendations %}
+                            <tr>
+                                <td>{{ rec.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>{{ rec.user.full_name }}</td>
+                                <td>{{ rec.user.street_barangay }}, {{ rec.user.municipality }}</td>
+                                <td>
+                                    <small>{{ rec.description|truncate(50) }}</small>
+                                </td>
+                                <td>
+                                    <img src="{{ url_for('static', filename='uploads/recommendations/' + rec.image_path) }}"
+                                        class="img-thumbnail"
+                                        style="width: 50px; height: 50px; object-fit: cover; cursor: pointer;"
+                                        data-id="{{ rec.id }}" data-user="{{ rec.user.full_name }}"
+                                        data-status="{{ rec.status }}" data-desc="{{ rec.description }}"
+                                        data-image="{{ url_for('static', filename='uploads/recommendations/' + rec.image_path) }}"
+                                        data-location="{{ rec.user.street_barangay }}"
+                                        onclick="openReportModalFromData(this)">
+                                </td>
+                                <td>
+                                    {% if rec.status == 'Pending' %}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                    {% elif rec.status == 'Read' %}
+                                    <span class="badge bg-info">Read</span>
+                                    {% elif rec.status == 'Resolved' %}
+                                    <span class="badge bg-success">Resolved</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ rec.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" data-id="{{ rec.id }}"
+                                        data-user="{{ rec.user.full_name }}" data-status="{{ rec.status }}"
+                                        data-desc="{{ rec.description }}"
+                                        data-image="{{ url_for('static', filename='uploads/recommendations/' + rec.image_path) }}"
+                                        data-location="{{ rec.user.street_barangay }}"
+                                        onclick="openReportModalFromData(this)">
+                                        View
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted">No reports found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> <!-- End tab-content -->
+
+<!-- Report Details Modal -->
+<div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Report Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6 text-center">
+                        <img id="modalReportImage" src="" class="img-fluid rounded mb-3" style="max-height: 400px;">
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="fw-bold">Reported By:</h6>
+                        <p id="modalReportUser"></p>
+
+                        <h6 class="fw-bold">Location:</h6>
+                        <p id="modalReportLocation"></p>
+
+                        <h6 class="fw-bold">Description:</h6>
+                        <p id="modalReportDesc" class="bg-light p-2 rounded"></p>
+
+                        <hr>
+                        <h6 class="fw-bold">Current Status: <span id="modalReportStatusBadge"
+                                class="badge bg-secondary"></span></h6>
+
+                        <form action="{{ url_for('update_recommendation_status') }}" method="POST" class="mt-3">
+                            <input type="hidden" name="id" id="modalReportId">
+                            <div class="d-flex gap-2">
+                                <button type="submit" name="status" value="Read"
+                                    class="btn btn-info text-white flex-grow-1">Mark as Read</button>
+                                <button type="submit" name="status" value="Resolved"
+                                    class="btn btn-success flex-grow-1">Mark as Resolved</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Set Password Modal -->
+    <div class="modal fade" id="adminSetPasswordModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Set Password for <span id="modalUserName"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form action="{{ url_for('set_user_password') }}" method="POST">
+                        <input type="hidden" name="user_id" id="modalUserId">
+                        <div class="mb-3">
+                            <label class="form-label">New Password</label>
+                            <input type="text" class="form-control" name="new_password" required
+                                placeholder="Enter new password">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Update Password</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endblock %}
+
+    {% block scripts %}
+    <script>
+        function deleteSingleRecord(type, id) {
+            if (!confirm('Delete this record?')) return;
+
+            var f = document.createElement('form');
+            f.method = 'POST';
+            // Construct URL manually since we passed raw IDs
+            // URL pattern: /admin/delete_record/<type>/<id>
+            f.action = '/admin/delete_record/' + type + '/' + id;
+            document.body.appendChild(f);
+            f.submit();
+        }
+
+        function toggleAll(headerId, name) {
+            var header = document.getElementById(headerId);
+            var checkboxes = document.getElementsByName(name);
+            for (var i = 0; i < checkboxes.length; i++) {
+                checkboxes[i].checked = header.checked;
+            }
+        }
+
+        function submitBatchDeleteRecords() {
+            var checkboxes = document.getElementsByName('record_ids');
+            var checked = false;
+            for (var i = 0; i < checkboxes.length; i++) {
+                if (checkboxes[i].checked) checked = true;
+            }
+            if (!checked) {
+                alert('Please select records to delete.');
+                return;
+            }
+            document.getElementById('batchDeleteRecordsForm').submit();
+        }
+
+        function submitBatchDeleteFarmers() {
+            var checkboxes = document.getElementsByName('user_ids');
+            var checked = false;
+            for (var i = 0; i < checkboxes.length; i++) {
+                if (checkboxes[i].checked) checked = true;
+            }
+            if (!checked) {
+                alert('Please select farmers to delete.');
+                return;
+            }
+            document.getElementById('batchDeleteFarmersForm').submit();
+        }
+
+        function openSetPasswordModal(userId, username) {
+            document.getElementById('modalUserId').value = userId;
+            document.getElementById('modalUserName').innerText = username;
+            var modal = new bootstrap.Modal(document.getElementById('adminSetPasswordModal'));
+            modal.show();
+        }
+
+        function toggleTargetInput() {
+            var type = document.getElementById('target_type').value;
+            document.getElementById('div_municipality').classList.add('d-none');
+            document.getElementById('div_user').classList.add('d-none');
+
+            // Disable inputs to avoid submitting wrong value key
+            document.getElementById('select_municipality').name = 'ignore';
+            document.getElementById('select_user').name = 'ignore';
+
+            if (type === 'municipality') {
+                document.getElementById('div_municipality').classList.remove('d-none');
+                document.getElementById('select_municipality').name = 'target_value';
+            } else if (type === 'user') {
+                document.getElementById('div_user').classList.remove('d-none');
+                document.getElementById('select_user').name = 'target_value';
+            }
+        }
+
+        function openReportModalFromData(el) {
+            var id = el.getAttribute('data-id');
+            var user = el.getAttribute('data-user');
+            var status = el.getAttribute('data-status');
+            var desc = el.getAttribute('data-desc');
+            var imageSrc = el.getAttribute('data-image');
+            var location = el.getAttribute('data-location');
+
+            document.getElementById('modalReportId').value = id;
+            document.getElementById('modalReportUser').innerText = user;
+            document.getElementById('modalReportLocation').innerText = location;
+            document.getElementById('modalReportDesc').innerText = desc;
+            document.getElementById('modalReportImage').src = imageSrc;
+
+            var badge = document.getElementById('modalReportStatusBadge');
+            badge.innerText = status;
+            if (status === 'Pending') { badge.className = 'badge bg-warning text-dark'; }
+            else if (status === 'Read') { badge.className = 'badge bg-info'; }
+            else if (status === 'Resolved') { badge.className = 'badge bg-success'; }
+
+            var modal = new bootstrap.Modal(document.getElementById('reportModal'));
+            modal.show();
+        }
+
+        // Initialize map
+        // We wrap this in a check or event listener because hidden tabs can sometimes mess up Leaflet size
+        var mapInitialized = false;
+        var map;
+
+        function initMap() {
+            if (mapInitialized) return;
+
+            map = L.map('map').setView([14.28, 120.92], 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            // Data passed from Flask is safe for JS
+            var mapData = JSON.parse('{{ map_data|tojson|safe }}');
+
+            mapData.forEach(function (point) {
+                var fillColor = '#808080';
+                if (point.color === 'red') fillColor = '#d32f2f';
+                if (point.color === 'orange') fillColor = '#ff9800';
+                if (point.color === 'green') fillColor = '#388e3c';
+                if (point.color === 'yellow') fillColor = '#fbc02d';
+
+                var circle = L.circleMarker([point.lat, point.lng], {
+                    color: fillColor,
+                    fillColor: fillColor,
+                    fillOpacity: 0.7,
+                    radius: 10
+                }).addTo(map);
+
+                circle.bindPopup(`
+                <b>${point.name}</b><br>
+                Pests: <span class="text-danger fw-bold">${point.pests}</span><br>
+                Beneficials: <span class="text-success fw-bold">${point.beneficials}</span>
+            `);
+            });
+
+            mapInitialized = true;
+        }
+
+        // Initialize map on load (since tab 1 is active)
+        document.addEventListener("DOMContentLoaded", function () {
+            initMap();
+
+            // Check for hash in URL to activate specific tab
+            var hash = window.location.hash; // logs
+            if (hash) {
+                // hash = #logs
+                // The button ID convention I used is 'logs-tab'
+                var triggerEl = document.querySelector('button[data-bs-target="' + hash + '"]');
+                if (triggerEl) {
+                    triggerEl.click();
+                }
+            }
+
+            // Init Admin Charts
+            // Use try-catch or checks in case data is empty
+            try {
+                var ctxD = document.getElementById('adminDailyChart').getContext('2d');
+                new Chart(ctxD, {
+                    type: 'bar', // Bar instead of line for global aggregate usually looks better
+                    data: {
+                        labels: JSON.parse('{{ chart_daily.labels|tojson|safe }}'),
+                        datasets: [{
+                            label: 'Total Detections',
+                            data: JSON.parse('{{ chart_daily.counts|tojson|safe }}'),
+                            backgroundColor: '#3f51b5'
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+
+                var ctxI = document.getElementById('adminInsectChart').getContext('2d');
+                new Chart(ctxI, {
+                    type: 'pie',
+                    data: {
+                        labels: JSON.parse('{{ chart_insects.labels|tojson|safe }}'),
+                        datasets: [{
+                            data: JSON.parse('{{ chart_insects.counts|tojson|safe }}'),
+                            backgroundColor: [
+                                '#e57373', '#81c784', '#64b5f6', '#ffd54f', '#ba68c8', '#4db6ac', '#7986cb', '#a1887f'
+                            ]
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+                });
+            } catch (e) { console.error("Chart init error", e); }
+        });
+
+        // Also invalidate size when tab triggers
+        var triggerTabList = [].slice.call(document.querySelectorAll('#adminTabs button'))
+        triggerTabList.forEach(function (triggerEl) {
+            triggerEl.addEventListener('shown.bs.tab', function (event) {
+                if (event.target.id === 'heatmap-tab') {
+                    if (map) map.invalidateSize();
+                }
+            })
+        })
+    </script>
+    {% endblock %}

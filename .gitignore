@@ -1,0 +1,22 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environment
+venv/
+env/
+.venv/
+
+# Database
+instance/
+*.db
+*.sqlite3
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Flask
+.webassets-cache
