@@ -17,6 +17,10 @@
             role="tab">Report Logs</button>
     </li>
     <li class="nav-item" role="presentation">
+        <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports" type="button"
+            role="tab">Field Reports</button>
+    </li>
+    <li class="nav-item" role="presentation">
         <button class="nav-link" id="farmers-tab" data-bs-toggle="tab" data-bs-target="#farmers" type="button"
             role="tab">Farmer Management</button>
     </li>
@@ -31,10 +35,6 @@
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="alerts-tab" data-bs-toggle="tab" data-bs-target="#alerts" type="button"
             role="tab">Alerts</button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports" type="button"
-            role="tab">Field Reports</button>
     </li>
 </ul>
 
@@ -91,38 +91,36 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="card-title mb-0">All Detection Records</h5>
-                    <div class="row g-2 mb-3">
-                        <div class="col-md-3">
-                            <input type="text" id="logsSearch" class="form-control form-control-sm"
-                                placeholder="Search text..." onkeyup="applyLogFilters()">
-                        </div>
-                        <div class="col-md-2">
-                            <select id="logsInsectFilter" class="form-select form-select-sm"
-                                onchange="applyLogFilters()">
-                                <option value="all">All Insects</option>
-                                {% for insect in unique_insects %}
-                                <option value="{{ insect }}">{{ insect }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <select id="logsLocationFilter" class="form-select form-select-sm"
-                                onchange="applyLogFilters()">
-                                <option value="all">All Locations</option>
-                                {% for brgy in unique_barangays %}
-                                <option value="{{ brgy }}">{{ brgy }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <input type="date" id="logsDateFilter" class="form-control form-control-sm"
-                                onchange="applyLogFilters()">
-                        </div>
-                        <div class="col-auto ms-auto">
-                            <button type="button" class="btn btn-danger btn-sm" onclick="submitBatchDeleteRecords()">
-                                Delete Selected
-                            </button>
-                        </div>
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-md-3">
+                        <input type="text" id="logsSearch" class="form-control form-control-sm"
+                            placeholder="Search text..." onkeyup="applyLogFilters()">
+                    </div>
+                    <div class="col-md-2">
+                        <select id="logsInsectFilter" class="form-select form-select-sm" onchange="applyLogFilters()">
+                            <option value="all">All Insects</option>
+                            {% for insect in unique_insects %}
+                            <option value="{{ insect }}">{{ insect }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select id="logsLocationFilter" class="form-select form-select-sm" onchange="applyLogFilters()">
+                            <option value="all">All Locations</option>
+                            {% for brgy in unique_barangays %}
+                            <option value="{{ brgy }}">{{ brgy }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="date" id="logsDateFilter" class="form-control form-control-sm"
+                            onchange="applyLogFilters()">
+                    </div>
+                    <div class="col-auto ms-auto">
+                        <button type="button" class="btn btn-danger btn-sm" onclick="submitBatchDeleteRecords()">
+                            Delete Selected
+                        </button>
                     </div>
                 </div>
 
