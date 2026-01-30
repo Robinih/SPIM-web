@@ -1,8 +1,10 @@
 import os
 import json
 import random
+import io
+import csv
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_from_directory
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_from_directory, make_response
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
@@ -983,12 +985,12 @@ def export_data():
     cw = csv.writer(si)
     
     # Header
-    cw.writerow(['Type', 'ID', 'Timestamp', 'User', 'Municipality', 'Insect', 'Count', 'Status', 'Image'])
+    cw.writerow(['Type', 'ID', 'Timestamp', 'User', 'Municipality', 'Insect', 'Count', 'Status'])
     
     # Detections
     for d in detections:
         status = 'Beneficial' if d.is_beneficial else 'Pest'
-        cw.writerow(['Identify', d.id, d.timestamp, d.user.full_name, d.user.municipality, d.insect_name, 1, status, d.image_file])
+        cw.writerow(['Identify', d.id, d.timestamp, d.user.full_name, d.user.municipality, d.insect_name, 1, status])
         
     # Counts
     for c in counts:
@@ -1005,17 +1007,48 @@ def export_data():
                 first = True
                 for name, val in data.items():
                     s = 'Beneficial' if is_beneficial(name) else 'Pest'
-                    cw.writerow(['Count', c.id, c.timestamp, c.user.full_name, c.user.municipality, name, val, s, c.image_file])
+                    
+                    # Ensure val is an integer count
+                    clean_val = 0
+                    if isinstance(val, (int, float)):
+                        clean_val = int(val)
+                    elif isinstance(val, str) and val.isdigit():
+                        clean_val = int(val)
+                    elif isinstance(val, dict):
+                        # Try to extract count from dictionary
+                        if 'count' in val:
+                            clean_val = int(val['count'])
+                        elif 'value' in val:
+                            clean_val = int(val['value'])
+                        elif 'qty' in val:
+                            clean_val = int(val['qty'])
+                        else:
+                            # Fallback: grab first numeric value
+                            for v in val.values():
+                                if isinstance(v, (int, float)):
+                                    clean_val = int(v)
+                                    break
+                                elif isinstance(v, str) and v.isdigit():
+                                    clean_val = int(v)
+                                    break
+                    
+                    cw.writerow(['Count', c.id, c.timestamp, c.user.full_name, c.user.municipality, name, clean_val, s])
                     first = False
                 if not first: continue # if we wrote rows, skip the fallback write
             except:
                 pass
         
         # Fallback if no breakdown or parse error
-        cw.writerow(['Count', c.id, c.timestamp, c.user.full_name, c.user.municipality, 'Mixed/Unknown', c.total_count, 'Pest', c.image_file])
+        cw.writerow(['Count', c.id, c.timestamp, c.user.full_name, c.user.municipality, 'Mixed/Unknown', c.total_count, 'Pest'])
         
+    
+    # Construct filename
+    f_start = start_date_str if start_date_str else "Start"
+    f_end = end_date_str if end_date_str else "Present"
+    filename = f"SPIM_data_{f_start}-to-{f_end}.csv"
+    
     response = make_response(si.getvalue())
-    response.headers["Content-Disposition"] = "attachment; filename=spim_data_export.csv"
+    response.headers["Content-Disposition"] = f"attachment; filename={filename}"
     response.headers["Content-type"] = "text/csv"
     return response
 
