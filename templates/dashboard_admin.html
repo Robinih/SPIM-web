@@ -91,19 +91,38 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="card-title mb-0">All Detection Records</h5>
-                    <div class="d-flex gap-2">
-                        <input type="text" id="logsSearch" class="form-control form-control-sm"
-                            placeholder="Search logs..." style="width: 200px;"
-                            onkeyup="filterTable('logsTable', 'logsSearch', 'logsFilter', 4)">
-                        <select id="logsFilter" class="form-select form-select-sm" style="width: 150px;"
-                            onchange="filterTable('logsTable', 'logsSearch', 'logsFilter', 4)">
-                            <option value="all">All Types</option>
-                            <option value="pest">Pest</option>
-                            <option value="beneficial">Beneficial</option>
-                        </select>
-                        <button type="button" class="btn btn-danger btn-sm" onclick="submitBatchDeleteRecords()">
-                            Delete Selected
-                        </button>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-3">
+                            <input type="text" id="logsSearch" class="form-control form-control-sm"
+                                placeholder="Search text..." onkeyup="applyLogFilters()">
+                        </div>
+                        <div class="col-md-2">
+                            <select id="logsInsectFilter" class="form-select form-select-sm"
+                                onchange="applyLogFilters()">
+                                <option value="all">All Insects</option>
+                                {% for insect in unique_insects %}
+                                <option value="{{ insect }}">{{ insect }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select id="logsLocationFilter" class="form-select form-select-sm"
+                                onchange="applyLogFilters()">
+                                <option value="all">All Locations</option>
+                                {% for brgy in unique_barangays %}
+                                <option value="{{ brgy }}">{{ brgy }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="date" id="logsDateFilter" class="form-control form-control-sm"
+                                onchange="applyLogFilters()">
+                        </div>
+                        <div class="col-auto ms-auto">
+                            <button type="button" class="btn btn-danger btn-sm" onclick="submitBatchDeleteRecords()">
+                                Delete Selected
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -134,7 +153,8 @@
                                     <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
                                     <td>
                                         <strong>{{ log.user.full_name }}</strong><br>
-                                        <small class="text-muted">{{ log.user.municipality }}</small>
+                                        <small class="text-muted">{{ log.user.street_barangay }}, {{
+                                            log.user.municipality }}</small>
                                     </td>
                                     <td>
                                         {{ log.insect_name }}
@@ -199,273 +219,277 @@
                         <input type="text" id="farmersSearch" class="form-control form-control-sm"
                             placeholder="Search farmers..." style="width: 200px;"
                             onkeyup="filterTable('farmersTable', 'farmersSearch', 'farmersFilter', 3)">
+                        <!-- Use Barangay Column Index which is 4 (0-based: Checkbox, Name, User, Muni, Brgy) -->
                         <select id="farmersFilter" class="form-select form-select-sm" style="width: 150px;"
-                            onchange="filterTable('farmersTable', 'farmersSearch', 'farmersFilter', 3)">
-                            <option value="all">All Areas</option>
-                            <option value="naic">Naic</option>
+                            onchange="filterTable('farmersTable', 'farmersSearch', 'farmersFilter', 4)">
+                            <option value="all">All Barangays</option>
+                            {% for brgy in unique_barangays %}
+                            <option value="{{ brgy }}">{{ brgy }}</option>
+                            {% endfor %}
                         </select>
                         <button type="button" class="btn btn-danger btn-sm" onclick="submitBatchDeleteFarmers()">
                             Delete Selected
                         </button>
                     </div>
                 </div>
-
-                <form id="batchDeleteFarmersForm" action="{{ url_for('batch_delete_farmers') }}" method="POST"
-                    onsubmit="return confirm('Delete selected farmers? This cannot be undone.');">
-                    <div class="table-responsive">
-                        <table class="table table-bordered" id="farmersTable">
-                            <thead class="table-light">
-                                <tr>
-                                    <th style="width: 40px;"><input type="checkbox" id="selectAllFarmers"
-                                            onclick="toggleAll('selectAllFarmers', 'user_ids')"></th>
-                                    <th>Full Name</th>
-                                    <th>Username</th>
-                                    <th>Municipality</th>
-                                    <th>Barangay</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for farmer in farmers %}
-                                <tr>
-                                    <td>
-                                        <input type="checkbox" name="user_ids" value="{{ farmer.id }}">
-                                    </td>
-                                    <td>{{ farmer.full_name }}</td>
-                                    <td>{{ farmer.username }}</td>
-                                    <td>{{ farmer.municipality }}</td>
-                                    <td>{{ farmer.street_barangay }}</td>
-                                    <td>
-                                        <button type="button" class="btn btn-warning btn-sm"
-                                            onclick="openSetPasswordModal('{{ farmer.id }}', '{{ farmer.username }}')">
-                                            Change Password
-                                        </button>
-                                    </td>
-                                </tr>
-                                {% else %}
-                                <tr>
-                                    <td colspan="6" class="text-center text-muted">No farmers registered.</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-
-
-
-    <!-- TAB: Export Data -->
-    <div class="tab-pane fade" id="export" role="tabpanel">
-        <div class="card shadow-sm">
-            <div class="card-header bg-success text-white">
-                <h5 class="mb-0">Export Data</h5>
-            </div>
-            <div class="card-body">
-                <p class="text-muted">Download detection and counting records as a CSV file (compatible with Excel). You
-                    can filter by date range.</p>
-                <form action="{{ url_for('export_data') }}" method="POST">
-                    <div class="row g-3 align-items-end">
-                        <div class="col-md-4">
-                            <label class="form-label">Start Date</label>
-                            <input type="date" class="form-control" name="start_date">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">End Date</label>
-                            <input type="date" class="form-control" name="end_date">
-                        </div>
-                        <div class="col-md-4">
-                            <button type="submit" class="btn btn-success w-100">
-                                Download CSV
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- TAB: Analytics -->
-    <div class="tab-pane fade" id="analytics" role="tabpanel">
-        <div class="row mb-4">
-            <div class="col-md-8">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header bg-white">
-                        <h5 class="mb-0">Global Activity Timeline (All Farmers)</h5>
-                    </div>
-                    <div class="card-body" style="height: 400px;">
-                        <canvas id="adminDailyChart"></canvas>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header bg-white">
-                        <h5 class="mb-0">Total Insect Breakdown</h5>
-                    </div>
-                    <div class="card-body" style="height: 400px;">
-                        <canvas id="adminInsectChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- TAB 4: Alerts -->
-    <div class="tab-pane fade" id="alerts" role="tabpanel">
-        <div class="row">
-            <div class="col-md-5">
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-danger text-white">
-                        <h5 class="mb-0">Broadcast Alert</h5>
-                    </div>
-                    <div class="card-body">
-                        <form action="{{ url_for('send_notification') }}" method="POST">
-                            <div class="mb-3">
-                                <label class="form-label">Target Audience</label>
-                                <select class="form-select" name="target_type" id="target_type"
-                                    onchange="toggleTargetInput()">
-                                    <option value="all">All Farmers</option>
-                                    <option value="municipality">Specific Municipality</option>
-                                    <option value="user">Specific Farmer</option>
-                                </select>
-                            </div>
-
-                            <div class="mb-3 d-none" id="div_municipality">
-                                <label class="form-label">Select Municipality</label>
-                                <select class="form-select" name="target_value" id="select_municipality">
-                                    <option value="Naic">Naic</option>
-                                </select>
-                            </div>
-
-                            <div class="mb-3 d-none" id="div_user">
-                                <label class="form-label">Select Farmer</label>
-                                <select class="form-select" name="target_value_user" id="select_user">
-                                    {% for farmer in farmers %}
-                                    <option value="{{ farmer.id }}">{{ farmer.full_name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Alert Level</label>
-                                <select class="form-select" name="level">
-                                    <option value="Low">Low (Advisory)</option>
-                                    <option value="Medium">Medium (Warning)</option>
-                                    <option value="High">High (Critical)</option>
-                                </select>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Message</label>
-                                <textarea class="form-control" name="message" rows="3" required
-                                    placeholder="e.g. Swarm detected in Barangay X..."></textarea>
-                            </div>
-
-                            <button type="submit" class="btn btn-danger w-100">Send Alert</button>
-                        </form>
-                    </div>
-                </div>
             </div>
 
-            <div class="col-md-7">
-                <div class="card shadow-sm">
-                    <div class="card-header">
-                        <h5 class="mb-0">Recent Alerts</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="alert alert-info">
-                            History of sent alerts will appear here (requires fetching Notifications in app.py).
-                            <br>Currently, check the console or user apps for receipt.
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- TAB 5: Field Reports -->
-    <div class="tab-pane fade" id="reports" role="tabpanel">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="card-title mb-0">Incoming Field Reports</h5>
-                    <select id="reportsFilter" class="form-select form-select-sm" style="width: 150px;"
-                        onchange="filterTable('reportsTable', '', 'reportsFilter', 5)">
-                        <option value="all">All Status</option>
-                        <option value="pending">Pending</option>
-                        <option value="read">Read</option>
-                        <option value="resolved">Resolved</option>
-                    </select>
-                </div>
+            <form id="batchDeleteFarmersForm" action="{{ url_for('batch_delete_farmers') }}" method="POST"
+                onsubmit="return confirm('Delete selected farmers? This cannot be undone.');">
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle" id="reportsTable">
+                    <table class="table table-bordered" id="farmersTable">
                         <thead class="table-light">
                             <tr>
-                                <th>Date</th>
-                                <th>Farmer</th>
-                                <th>Location</th>
-                                <th>Description</th>
-                                <th>Photo</th>
-                                <th>Status</th>
-                                <th>Action</th>
+                                <th style="width: 40px;"><input type="checkbox" id="selectAllFarmers"
+                                        onclick="toggleAll('selectAllFarmers', 'user_ids')"></th>
+                                <th>Full Name</th>
+                                <th>Username</th>
+                                <th>Municipality</th>
+                                <th>Barangay</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for rec in recommendations %}
+                            {% for farmer in farmers %}
                             <tr>
-                                <td>{{ rec.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
-                                <td>{{ rec.user.full_name }}</td>
-                                <td>{{ rec.user.street_barangay }}, {{ rec.user.municipality }}</td>
                                 <td>
-                                    <small>{{ rec.description|truncate(50) }}</small>
+                                    <input type="checkbox" name="user_ids" value="{{ farmer.id }}">
                                 </td>
+                                <td>{{ farmer.full_name }}</td>
+                                <td>{{ farmer.username }}</td>
+                                <td>{{ farmer.municipality }}</td>
+                                <td>{{ farmer.street_barangay }}</td>
                                 <td>
-                                    <img src="{{ url_for('static', filename='uploads/recommendations/' + rec.image_path) }}"
-                                        class="img-thumbnail"
-                                        style="width: 50px; height: 50px; object-fit: cover; cursor: pointer;"
-                                        data-id="{{ rec.id }}" data-user="{{ rec.user.full_name }}"
-                                        data-status="{{ rec.status }}" data-desc="{{ rec.description }}"
-                                        data-image="{{ url_for('static', filename='uploads/recommendations/' + rec.image_path) }}"
-                                        data-location="{{ rec.user.street_barangay }}"
-                                        onclick="openReportModalFromData(this)">
-                                </td>
-                                <td>
-                                    {% if rec.status == 'Pending' %}
-                                    <span class="badge bg-warning text-dark">Pending</span>
-                                    {% elif rec.status == 'Read' %}
-                                    <span class="badge bg-info">Read</span>
-                                    {% elif rec.status == 'Resolved' %}
-                                    <span class="badge bg-success">Resolved</span>
-                                    {% else %}
-                                    <span class="badge bg-secondary">{{ rec.status }}</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <button class="btn btn-sm btn-primary" data-id="{{ rec.id }}"
-                                        data-user="{{ rec.user.full_name }}" data-status="{{ rec.status }}"
-                                        data-desc="{{ rec.description }}"
-                                        data-image="{{ url_for('static', filename='uploads/recommendations/' + rec.image_path) }}"
-                                        data-location="{{ rec.user.street_barangay }}"
-                                        onclick="openReportModalFromData(this)">
-                                        View
+                                    <button type="button" class="btn btn-warning btn-sm"
+                                        onclick="openSetPasswordModal('{{ farmer.id }}', '{{ farmer.username }}')">
+                                        Change Password
                                     </button>
                                 </td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="7" class="text-center text-muted">No reports found.</td>
+                                <td colspan="6" class="text-center text-muted">No farmers registered.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+
+
+<!-- TAB: Export Data -->
+<div class="tab-pane fade" id="export" role="tabpanel">
+    <div class="card shadow-sm">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">Export Data</h5>
+        </div>
+        <div class="card-body">
+            <p class="text-muted">Download detection and counting records as a CSV file (compatible with Excel). You
+                can filter by date range.</p>
+            <form action="{{ url_for('export_data') }}" method="POST">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" class="form-control" name="start_date">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">End Date</label>
+                        <input type="date" class="form-control" name="end_date">
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-success w-100">
+                            Download CSV
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- TAB: Analytics -->
+<div class="tab-pane fade" id="analytics" role="tabpanel">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Global Activity Timeline (All Farmers)</h5>
+                </div>
+                <div class="card-body" style="height: 400px;">
+                    <canvas id="adminDailyChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Total Insect Breakdown</h5>
+                </div>
+                <div class="card-body" style="height: 400px;">
+                    <canvas id="adminInsectChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
+</div>
+
+<!-- TAB 4: Alerts -->
+<div class="tab-pane fade" id="alerts" role="tabpanel">
+    <div class="row">
+        <div class="col-md-5">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">Broadcast Alert</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('send_notification') }}" method="POST">
+                        <div class="mb-3">
+                            <label class="form-label">Target Audience</label>
+                            <select class="form-select" name="target_type" id="target_type"
+                                onchange="toggleTargetInput()">
+                                <option value="all">All Farmers</option>
+                                <option value="municipality">Specific Municipality</option>
+                                <option value="user">Specific Farmer</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3 d-none" id="div_municipality">
+                            <label class="form-label">Select Municipality</label>
+                            <select class="form-select" name="target_value" id="select_municipality">
+                                <option value="Naic">Naic</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3 d-none" id="div_user">
+                            <label class="form-label">Select Farmer</label>
+                            <select class="form-select" name="target_value_user" id="select_user">
+                                {% for farmer in farmers %}
+                                <option value="{{ farmer.id }}">{{ farmer.full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Alert Level</label>
+                            <select class="form-select" name="level">
+                                <option value="Low">Low (Advisory)</option>
+                                <option value="Medium">Medium (Warning)</option>
+                                <option value="High">High (Critical)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Message</label>
+                            <textarea class="form-control" name="message" rows="3" required
+                                placeholder="e.g. Swarm detected in Barangay X..."></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-danger w-100">Send Alert</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-7">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Alerts</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        History of sent alerts will appear here (requires fetching Notifications in app.py).
+                        <br>Currently, check the console or user apps for receipt.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TAB 5: Field Reports -->
+<div class="tab-pane fade" id="reports" role="tabpanel">
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="card-title mb-0">Incoming Field Reports</h5>
+                <select id="reportsFilter" class="form-select form-select-sm" style="width: 150px;"
+                    onchange="filterTable('reportsTable', '', 'reportsFilter', 5)">
+                    <option value="all">All Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="read">Read</option>
+                    <option value="resolved">Resolved</option>
+                </select>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" id="reportsTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Farmer</th>
+                            <th>Location</th>
+                            <th>Description</th>
+                            <th>Photo</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rec in recommendations %}
+                        <tr>
+                            <td>{{ rec.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>{{ rec.user.full_name }}</td>
+                            <td>{{ rec.user.street_barangay }}, {{ rec.user.municipality }}</td>
+                            <td>
+                                <small>{{ rec.description|truncate(50) }}</small>
+                            </td>
+                            <td>
+                                <img src="{{ url_for('static', filename='uploads/recommendations/' + rec.image_path) }}"
+                                    class="img-thumbnail"
+                                    style="width: 50px; height: 50px; object-fit: cover; cursor: pointer;"
+                                    data-id="{{ rec.id }}" data-user="{{ rec.user.full_name }}"
+                                    data-status="{{ rec.status }}" data-desc="{{ rec.description }}"
+                                    data-image="{{ url_for('static', filename='uploads/recommendations/' + rec.image_path) }}"
+                                    data-location="{{ rec.user.street_barangay }}"
+                                    onclick="openReportModalFromData(this)">
+                            </td>
+                            <td>
+                                {% if rec.status == 'Pending' %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                                {% elif rec.status == 'Read' %}
+                                <span class="badge bg-info">Read</span>
+                                {% elif rec.status == 'Resolved' %}
+                                <span class="badge bg-success">Resolved</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ rec.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" data-id="{{ rec.id }}"
+                                    data-user="{{ rec.user.full_name }}" data-status="{{ rec.status }}"
+                                    data-desc="{{ rec.description }}"
+                                    data-image="{{ url_for('static', filename='uploads/recommendations/' + rec.image_path) }}"
+                                    data-location="{{ rec.user.street_barangay }}"
+                                    onclick="openReportModalFromData(this)">
+                                    View
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted">No reports found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 </div> <!-- End tab-content -->
 
 <!-- Report Details Modal -->
@@ -730,7 +754,56 @@
             })
         })
 
-        // --- Generic Search & Filter Function ---
+        // --- Advanced Filters Logic for Logs ---
+        function applyLogFilters() {
+            var text = document.getElementById('logsSearch').value.toLowerCase();
+            var insect = document.getElementById('logsInsectFilter').value.toLowerCase();
+            var location = document.getElementById('logsLocationFilter').value.toLowerCase();
+            var dateInput = document.getElementById('logsDateFilter').value; // YYYY-MM-DD format from input
+
+            var table = document.getElementById('logsTable');
+            var tr = table.getElementsByTagName("tr");
+
+            for (var i = 1; i < tr.length; i++) {
+                var show = true;
+
+                // Columns (0-based indices from THEAD):
+                // 0: Checkbox, 1: Date, 2: Farmer(Name+Loc), 3: Insect, 4: Type, 5: Count...
+
+                // 1. Text Search (Check entire row)
+                if (text && tr[i].innerText.toLowerCase().indexOf(text) === -1) show = false;
+
+                // 2. Insect Filter (Col 3)
+                if (show && insect !== 'all') {
+                    if (tr[i].cells[3].innerText.toLowerCase().indexOf(insect) === -1) show = false;
+                }
+
+                // 3. Location Filter (Col 2 - Farmer Column contains "Name<br>Municipality, Barangay" or similar)
+                // Actually in the logs table: 
+                // <td><strong>Name</strong><br><small>Municipality</small></td> -> wait, let's check template structure
+                // Logic: It prints user.municipality. We might need to inject Barangay distinct column or just search text.
+                // The current template prints "Municipality" but maybe not Barangay? 
+                // Let's rely on loose text search in the Farmer column for now if the data is there, 
+                // OR better, let's request the user to verify if Barangay is shown.
+                // Looking at Log Table TD 2: It shows user.municipality but NOT street_barangay in the previous view.
+                // WE SHOULD UPDATE THE TABLE ROW TO SHOW BARANGAY for this filter to work!
+                // Assuming we will update the table row to include Barangay.
+                if (show && location !== 'all') {
+                    if (tr[i].innerText.toLowerCase().indexOf(location) === -1) show = false;
+                }
+
+                // 4. Date Filter (Col 1: YYYY-MM-DD HH:MM)
+                if (show && dateInput) {
+                    // split YYYY-MM-DD from cell
+                    var cellDate = tr[i].cells[1].innerText.trim().substring(0, 10);
+                    if (cellDate !== dateInput) show = false;
+                }
+
+                tr[i].style.display = show ? "" : "none";
+            }
+        }
+
+        // --- Generic Search & Filter Function for Farmers/Reports ---
         function filterTable(tableId, inputId, selectId, filterColIndex) {
             var input = inputId ? document.getElementById(inputId) : null;
             var filter = input ? input.value.toLowerCase() : '';

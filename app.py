@@ -889,6 +889,10 @@ def admin_dashboard():
     # 5. Fetch Recommendations
     recommendations = Recommendation.query.order_by(Recommendation.timestamp.desc()).all()
 
+    # 6. Extract Unique Filter Data
+    unique_insects = sorted(list(set(log['insect_name'] for log in all_logs)))
+    unique_barangays = sorted(list(NAIC_BARANGAY_COORDS.keys()))
+
     return render_template('dashboard_admin.html', 
                            map_data=map_data, 
                            logs=all_logs, 
@@ -896,6 +900,8 @@ def admin_dashboard():
                            chart_daily=chart_daily,
                            chart_insects=chart_insects,
                            recommendations=recommendations,
+                           unique_insects=unique_insects,
+                           unique_barangays=unique_barangays,
                            current_timeframe=timeframe)
 
 @app.route('/admin/recommendation/status', methods=['POST'])
