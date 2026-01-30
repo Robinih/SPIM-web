@@ -33,3 +33,59 @@
     height: 200px;
     object-fit: cover;
 }
+
+/* --- Responsive Map Container --- */
+.map-responsive {
+    height: 600px;
+    /* Default Desktop Height */
+    width: 100%;
+    position: relative;
+}
+
+/* --- Responsive Admin Legend --- */
+.map-legend-responsive {
+    position: absolute;
+    bottom: 30px;
+    left: 20px;
+    z-index: 1000;
+    background: white;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    min-width: 180px;
+}
+
+/* --- Mobile Media Query --- */
+@media (max-width: 768px) {
+
+    /* Adjust Map Height for Mobile */
+    .map-responsive {
+        height: 50vh !important;
+        /* Use viewport height */
+        min-height: 400px;
+    }
+
+    /* Legend Adjustments */
+    .map-legend-responsive {
+        position: static;
+        /* Stack below map on mobile */
+        width: 100%;
+        margin-top: 10px;
+        box-shadow: none;
+        border: 1px solid #dee2e6;
+    }
+
+    /* Scrollable Tabs Container */
+    .nav-tabs-scroll {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        /* Smooth scroll on iOS */
+    }
+
+    .nav-tabs-scroll .nav-link {
+        white-space: nowrap;
+    }
+}

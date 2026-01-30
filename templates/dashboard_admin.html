@@ -7,7 +7,7 @@
     </div>
 </div>
 
-<ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
+<ul class="nav nav-tabs nav-tabs-scroll mb-4" id="adminTabs" role="tablist">
     <li class="nav-item" role="presentation">
         <button class="nav-link active" id="heatmap-tab" data-bs-toggle="tab" data-bs-target="#heatmap" type="button"
             role="tab">Live Heatmap</button>
@@ -54,11 +54,11 @@
                             class="btn btn-sm btn-outline-primary {% if current_timeframe == 'monthly' %}active{% endif %}">Monthly</a>
                     </div>
                 </div>
-                <div id="map" style="height: 600px; width: 100%;"></div>
+                <!-- Responsive Map Container -->
+                <div id="map" class="map-responsive"></div>
 
                 <!-- Heatmap Legend -->
-                <div
-                    style="position: absolute; bottom: 30px; left: 20px; z-index: 1000; background: white; padding: 10px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.2);">
+                <div class="map-legend-responsive">
                     <h6 class="mb-2"><strong>Target Status</strong></h6>
                     <div class="d-flex align-items-center mb-1">
                         <span

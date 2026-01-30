@@ -70,13 +70,15 @@
                     <h5 class="card-title mb-0 fw-bold">Farm Health</h5>
                 </div>
                 <hr class="text-muted opacity-25">
-                <div class="d-flex justify-content-around align-items-center mb-3">
-                    <div class="text-center">
+                <div
+                    class="d-flex flex-column flex-md-row justify-content-around align-items-center mb-3 gap-3 gap-md-0">
+                    <div class="text-center w-100">
                         <h6 class="text-muted small text-uppercase fw-semibold ls-1">Pest Pressure</h6>
                         <h2 class="text-danger fw-bold mb-0">{{ pests }}</h2>
                     </div>
-                    <div class="vr bg-secondary opacity-25" style="height: 40px;"></div>
-                    <div class="text-center">
+                    <div class="vr bg-secondary opacity-25 d-none d-md-block" style="height: 40px;"></div>
+                    <hr class="w-100 d-block d-md-none text-muted opacity-25 my-2">
+                    <div class="text-center w-100">
                         <h6 class="text-muted small text-uppercase fw-semibold ls-1">Beneficials</h6>
                         <h2 class="text-success fw-bold mb-0">{{ beneficials }}</h2>
                     </div>
@@ -103,8 +105,8 @@
     <!-- Mobile Sync Card -->
     <div class="col-md-8">
         <div class="card shadow-sm border-0 rounded-3 h-100 bg-info-subtle bg-gradient">
-            <div class="card-body p-4 d-flex align-items-center">
-                <div class="me-4 flex-shrink-0 text-info">
+            <div class="card-body p-4 d-flex flex-column flex-md-row align-items-center text-center text-md-start">
+                <div class="me-md-4 mb-3 mb-md-0 flex-shrink-0 text-info">
                     <i class="bi bi-phone-vibrate display-5"></i>
                 </div>
                 <div>
