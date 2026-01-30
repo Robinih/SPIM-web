@@ -97,6 +97,23 @@ def api_register():
         return jsonify({"error": "Username already exists"}), 400
 
     hashed_password = generate_password_hash(password)
+    
+    # Coordinates Logic (Copy from Web Register)
+    final_lat = float(latitude) if latitude else None
+    final_lng = float(longitude) if longitude else None
+    
+    if not final_lat:
+        # 1. Try Specific Barangay
+        if municipality == "Naic" and street_barangay in NAIC_BARANGAY_COORDS:
+            base_lat, base_lng = NAIC_BARANGAY_COORDS[street_barangay]
+            final_lat = base_lat + random.uniform(-0.001, 0.001)
+            final_lng = base_lng + random.uniform(-0.001, 0.001)
+        # 2. Key Municipality
+        elif municipality in MUNICIPALITY_COORDS:
+            base_lat, base_lng = MUNICIPALITY_COORDS[municipality]
+            final_lat = base_lat + random.uniform(-0.005, 0.005)
+            final_lng = base_lng + random.uniform(-0.005, 0.005)
+
     new_user = User(
         username=username,
         full_name=full_name,
@@ -104,12 +121,12 @@ def api_register():
         municipality=municipality,
         street_barangay=street_barangay,
         role=role,
-        latitude=latitude,
-        longitude=longitude
+        latitude=final_lat,
+        longitude=final_lng
     )
     db.session.add(new_user)
     db.session.commit()
-    return jsonify({"message": "User registered successfully"}), 201
+    return jsonify({"message": "User registered successfully", "latitude": final_lat, "longitude": final_lng}), 201
 
 @app.route('/api/login', methods=['POST'])
 def api_login():
