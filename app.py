@@ -1601,14 +1601,30 @@ def mark_notification_read(notification_id):
     return jsonify({"message": "Marked as read"}), 200
 
 @app.route('/api/notifications/read/all', methods=['POST'])
-@login_required
 def mark_all_notifications_read():
-    notifications = Notification.query.filter_by(user_id=current_user.id, is_read=False).all()
+    # Android API: Mark all notifications as read for a user
+    user_id = request.args.get('user_id')
+    
+    if not user_id:
+        return jsonify({"error": "user_id parameter required"}), 400
+    
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    # Update all unread notifications for this user
+    notifications = Notification.query.filter_by(user_id=user_id, is_read=False).all()
+    count = 0
     for n in notifications:
         n.is_read = True
+        count += 1
     
     db.session.commit()
-    return jsonify({"message": f"Marked {len(notifications)} notifications as read"}), 200
+    
+    return jsonify({
+        "message": "All notifications marked as read",
+        "count": count
+    }), 200
 
 @app.route('/api/notifications', methods=['GET'])
 def api_notifications():
@@ -1640,32 +1656,6 @@ def api_notifications():
             'is_read': n.is_read
         })
     return jsonify(data)  # Always returns array, empty [] if no notifications
-
-@app.route('/api/notifications/read/all', methods=['POST'])
-def mark_all_notifications_read():
-    # Android API: Mark all notifications as read for a user
-    user_id = request.args.get('user_id')
-    
-    if not user_id:
-        return jsonify({"error": "user_id parameter required"}), 400
-    
-    user = User.query.get(user_id)
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-    
-    # Update all unread notifications for this user
-    notifications = Notification.query.filter_by(user_id=user_id, is_read=False).all()
-    count = 0
-    for n in notifications:
-        n.is_read = True
-        count += 1
-    
-    db.session.commit()
-    
-    return jsonify({
-        "message": "All notifications marked as read",
-        "count": count
-    }), 200
 
 
 @app.route('/test_alert', methods=['POST'])
