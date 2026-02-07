@@ -8,6 +8,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, f
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
+from flask_cors import CORS
 from models import db, User, DetectionRecord, CountingRecord, Notification, Recommendation
 from utils import get_insect_status, is_beneficial
 
@@ -17,6 +18,13 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///spim.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
 app.config['RECOMMENDATION_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads', 'recommendations')
+
+# CORS configuration for Android app
+CORS(app, supports_credentials=True)
+
+# Session cookie configuration for cross-origin requests (HTTPS deployment)
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_SECURE'] = True
 
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
@@ -1656,7 +1664,8 @@ def test_alert():
     check_infestation_threshold(target_user.id, target_user.municipality, is_test=True)
     
     flash(f'Simulated {pests_to_add} pests for {target_user.full_name}. check alerts.', 'success')
-    return redirect(request.referrer)
+    # Preserve the current tab by redirecting to the alerts anchor
+    return redirect(url_for('developer_dashboard', _anchor='alerts') if current_user.role == 'developer' else url_for('admin_dashboard', _anchor='alerts'))
 
 # Initialize DB
 with app.app_context():
