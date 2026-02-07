@@ -51,13 +51,32 @@ def seed_data():
                 db.session.commit() # Commit to get ID
             
             # Add random pest data
-            # 1-5 Detection Records
-            for _ in range(random.randint(1, 5)):
-                is_pest = random.choice([True, True, False]) # 2/3 chance pest
+            # First, add 3-8 records from TODAY to ensure alerts trigger
+            for _ in range(random.randint(3, 8)):
+                is_pest = random.choice([True, True, True, False]) # 3/4 chance pest
                 insect = random.choice(INSECTS) if is_pest else random.choice(BENEFICIALS)
                 
-                # Random date within 30 days
-                days_ago = random.randint(0, 30)
+                # TODAY with random hours
+                hours_ago = random.randint(0, 12)
+                record_time = ph_time_now() - timedelta(hours=hours_ago)
+
+                record = DetectionRecord(
+                    user_id=user.id,
+                    insect_name=insect,
+                    confidence=random.uniform(0.7, 0.99),
+                    image_file="placeholder.jpg",
+                    is_beneficial=not is_pest,
+                    timestamp=record_time
+                )
+                db.session.add(record)
+            
+            # Then add 1-3 older records for historical data
+            for _ in range(random.randint(1, 3)):
+                is_pest = random.choice([True, True, False])
+                insect = random.choice(INSECTS) if is_pest else random.choice(BENEFICIALS)
+                
+                # Random date within 30 days (but NOT today)
+                days_ago = random.randint(1, 30)
                 record_time = ph_time_now() - timedelta(days=days_ago)
 
                 record = DetectionRecord(

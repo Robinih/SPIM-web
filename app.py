@@ -1514,8 +1514,8 @@ def batch_delete_notifications():
     count = 0
     for nid in notification_ids:
         note = Notification.query.get(nid)
-        # Verify ownership (admin/dev can delete their own notifications)
-        if note and note.user_id == current_user.id:
+        # Admins and developers can delete ANY notification
+        if note:
             db.session.delete(note)
             count += 1
             
