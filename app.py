@@ -286,23 +286,7 @@ def api_stats_dashboard():
         "beneficials": beneficial_count
     })
 
-@app.route('/api/notifications', methods=['GET'])
-def api_notifications():
-    user_id = request.args.get('user_id')
-    if not user_id:
-        return jsonify({"error": "Missing user_id"}), 400
-        
-    notifs = Notification.query.filter_by(user_id=user_id).order_by(Notification.timestamp.desc()).all()
-    results = []
-    for n in notifs:
-        results.append({
-            "id": n.id,
-            "message": n.message,
-            "level": n.level,
-            "timestamp": n.timestamp.strftime('%Y-%m-%d %H:%M'),
-            "is_read": n.is_read
-        })
-    return jsonify(results)
+
 
 # Helper Function for Auto-Threshold
 def check_infestation_threshold(user_id, municipality):
@@ -397,50 +381,7 @@ def check_infestation_threshold(user_id, municipality):
         db.session.commit()
         print(f"DEBUG: Auto-Alert ({level}) sent to User {user_id}")
 
-@app.route('/admin/debug/test_alert', methods=['POST'])
-@login_required
-def test_alert():
-    # RESTRICTED TO DEVELOPER ONLY
-    if current_user.role != 'developer':
-        return jsonify({"error": "Unauthorized. Developer access required."}), 403
-        
-    user_id = request.form.get('user_id')
-    pests_to_add = int(request.form.get('pests_to_add', 10))
-    
-    target_user = User.query.get(user_id)
-    if not target_user:
-        # Default to first farmer if not specified
-        target_user = User.query.filter_by(role='farmer').first()
-        
-    if not target_user:
-        flash("No farmers available to test.", "danger")
-        return redirect(url_for('admin_dashboard', _anchor='alerts'))
-        
-    # Create Dummy Records to Trigger Threshold
-    temp_records = []
-    for i in range(pests_to_add):
-        rec = DetectionRecord(
-            user_id=target_user.id,
-            insect_name="Test Pest (Simulated)",
-            confidence=0.99,
-            image_file="test_image.jpg", # Placeholder
-            is_beneficial=False
-        )
-        db.session.add(rec)
-        temp_records.append(rec)
-    
-    db.session.commit()
-    
-    # Trigger Check (Alert Logic runs against DB)
-    check_infestation_threshold(target_user.id, target_user.municipality)
-    
-    # Cleanup: Remove the temporary records so they don't clutter logs
-    for rec in temp_records:
-        db.session.delete(rec)
-    db.session.commit()
-    
-    flash(f"Simulated adding {pests_to_add} pests for {target_user.full_name} to test alerts. Records were temporary and have been removed.", "success")
-    return redirect(url_for('developer_dashboard', _anchor='alerts'))
+
 
 # --- Web Routes ---
 
