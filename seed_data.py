@@ -3,6 +3,8 @@ import random
 from werkzeug.security import generate_password_hash
 from datetime import datetime, timedelta
 
+import json
+
 def ph_time_now():
     return datetime.utcnow() + timedelta(hours=8)
 
@@ -84,7 +86,7 @@ def seed_data():
                     user_id=user.id,
                     total_count=count_val,
                     image_file="placeholder_count.jpg",
-                    breakdown=str(breakdown).replace("'", '"'), # Simple JSON stringify
+                    breakdown=json.dumps(breakdown),
                     timestamp=record_time
                 )
                 db.session.add(c_record)

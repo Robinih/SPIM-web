@@ -12,7 +12,7 @@ from models import db, User, DetectionRecord, CountingRecord, Notification, Reco
 from utils import get_insect_status, is_beneficial
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'spim_secret_key_change_in_production' # Change this!
+app.config['SECRET_KEY'] = 'spim_secret_key_change_in_production' # TODO: Change this in production!
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///spim.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
@@ -220,7 +220,7 @@ def sync_count():
         return jsonify({"message": "Count record saved"}), 201
 
     return jsonify({"error": "Failed to save"}), 500
-    return jsonify({"error": "Failed to save"}), 500
+
 
 @app.route('/api/recommendation', methods=['POST'])
 def api_recommendation():
@@ -415,7 +415,7 @@ def register():
 
         hashed_password = generate_password_hash(password)
         
-        hashed_password = generate_password_hash(password)
+
         
         final_lat = float(latitude) if latitude else None
         final_lng = float(longitude) if longitude else None
@@ -1125,9 +1125,18 @@ def developer_dashboard():
     users = User.query.all()
     map_data = []
     
-    timeframe = request.args.get('timeframe', 'daily') 
+    # Daily Filter Start
+    # 1. Determine Timeframe
+    timeframe = request.args.get('timeframe', 'daily') # daily, weekly, monthly, past3ds, custom
+    
     now_ph = datetime.utcnow() + timedelta(hours=8)
+    
+    # Default message for display
     current_range_display = "Today"
+    
+    # Initialize Dates
+    start_date = now_ph.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_date = None # Only used for custom range
 
     if timeframe == 'weekly':
         start_date = now_ph - timedelta(days=7)
@@ -1144,14 +1153,20 @@ def developer_dashboard():
         if s_str and e_str:
             try:
                 start_date = datetime.strptime(s_str, '%Y-%m-%d')
+                # End date is inclusive of the day, so +1 day
+                end_date = datetime.strptime(e_str, '%Y-%m-%d') + timedelta(days=1)
                 current_range_display = f"{s_str} to {e_str}"
             except:
+                # Fallback to Today if parsing fails
                 start_date = now_ph.replace(hour=0, minute=0, second=0, microsecond=0)
+                end_date = None
                 current_range_display = "Invalid Date Range"
         else:
+            # Fallback if params missing
             start_date = now_ph.replace(hour=0, minute=0, second=0, microsecond=0)
     else: 
-        start_date = now_ph.replace(hour=0, minute=0, second=0, microsecond=0)
+        # daily (already set default)
+        pass
 
     for u in users:
         u_pests = 0
@@ -1159,17 +1174,13 @@ def developer_dashboard():
         d_query = DetectionRecord.query.filter_by(user_id=u.id)
         c_query = CountingRecord.query.filter_by(user_id=u.id)
         
-        if timeframe == 'custom' and request.args.get('start_date') and request.args.get('end_date'):
-             try:
-                s_date = datetime.strptime(request.args.get('start_date'), '%Y-%m-%d')
-                e_date = datetime.strptime(request.args.get('end_date'), '%Y-%m-%d') + timedelta(days=1)
-                d_query = d_query.filter(DetectionRecord.timestamp >= s_date).filter(DetectionRecord.timestamp < e_date)
-                c_query = c_query.filter(CountingRecord.timestamp >= s_date).filter(CountingRecord.timestamp < e_date)
-             except:
-                 pass
+        # Apply Filter Safe Logic
+        if timeframe == 'custom' and end_date:
+            d_query = d_query.filter(DetectionRecord.timestamp >= start_date).filter(DetectionRecord.timestamp < end_date)
+            c_query = c_query.filter(CountingRecord.timestamp >= start_date).filter(CountingRecord.timestamp < end_date)
         else:
-             d_query = d_query.filter(DetectionRecord.timestamp >= start_date)
-             c_query = c_query.filter(CountingRecord.timestamp >= start_date)
+            d_query = d_query.filter(DetectionRecord.timestamp >= start_date)
+            c_query = c_query.filter(CountingRecord.timestamp >= start_date)
         
         u_detections = d_query.all()
         u_counts = c_query.all()

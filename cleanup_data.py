@@ -37,8 +37,20 @@ def cleanup():
                     if new_data:
                         c.breakdown = json.dumps(new_data)
                         should_delete = False
-                        # Recalculate total? Assuming total_count matches breakdown
-                        c.total_count = sum(new_data.values())
+                        # Recalculate total with safe type conversion
+                        total = 0
+                        for val in new_data.values():
+                            if isinstance(val, (int, float)):
+                                total += int(val)
+                            elif isinstance(val, str) and val.isdigit():
+                                total += int(val)
+                            elif isinstance(val, dict):
+                                # Extract count from dict if present
+                                for v in val.values():
+                                    if isinstance(v, (int, float)):
+                                        total += int(v)
+                                        break
+                        c.total_count = total
                     else:
                         should_delete = True
                 except:

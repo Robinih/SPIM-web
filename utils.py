@@ -1,6 +1,5 @@
 
 # Source of Truth for Insect Types
-# Source of Truth for Insect Types
 INSECT_TYPES = {
     # Pests
     "aphids": "PEST",
