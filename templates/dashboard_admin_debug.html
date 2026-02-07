@@ -432,33 +432,6 @@
                         </form>
                     </div>
                 </div>
-
-                <div class="card shadow-sm mt-4">
-                    <div class="card-header bg-warning text-dark">
-                        <h5 class="mb-0">Test Alert System</h5>
-                    </div>
-                    <div class="card-body">
-                        <p class="small text-muted mb-2">Simulate a high pest count to trigger automatic alerts.</p>
-                        <form action="{{ url_for('test_alert') }}" method="POST">
-                            <div class="mb-3">
-                                <label class="form-label">Select Farmer</label>
-                                <select class="form-select" name="user_id">
-                                    {% for farmer in farmers %}
-                                    <option value="{{ farmer.id }}">{{ farmer.full_name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Pests to Simulate (Today)</label>
-                                <input type="number" class="form-control" name="pests_to_add" value="20" min="1">
-                                <div class="form-text">
-                                    Thresholds: >5 (Medium), >15 (High)
-                                </div>
-                            </div>
-                            <button type="submit" class="btn btn-warning w-100">Simulate Infestation</button>
-                        </form>
-                    </div>
-                </div>
             </div>
 
             <div class="col-md-7">
@@ -467,27 +440,10 @@
                         <h5 class="mb-0">Recent Alerts</h5>
                     </div>
                     <div class="card-body">
-                        {% if notifications %}
-                        <div class="list-group list-group-flush" style="max-height: 400px; overflow-y: auto;">
-                            {% for n in notifications %}
-                            <div class="list-group-item px-0">
-                                <div class="d-flex w-100 justify-content-between">
-                                    <span
-                                        class="badge bg-{{ 'danger' if n.level == 'High' else ('warning text-dark' if n.level == 'Medium' else 'info') }} mb-1">
-                                        {{ n.level }} Priority
-                                    </span>
-                                    <small class="text-muted">{{ n.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
-                                </div>
-                                <p class="mb-1 small fw-bold">{{ n.message }}</p>
-                                <small class="text-muted">To: {{ n.user.full_name }}</small>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        {% else %}
                         <div class="alert alert-info">
-                            No recent alerts found.
+                            History of sent alerts will appear here (requires fetching Notifications in app.py).
+                            <br>Currently, check the console or user apps for receipt.
                         </div>
-                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -625,269 +581,341 @@
             </div>
         </div>
     </div>
-</div>
 
-<!-- Admin Set Password Modal - MOVED HERE -->
-<div class="modal fade" id="adminSetPasswordModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Set Password for <span id="modalUserName"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form action="{{ url_for('set_user_password') }}" method="POST">
-                    <input type="hidden" name="user_id" id="modalUserId">
-                    <div class="mb-3">
-                        <label class="form-label">New Password</label>
-                        <div class="input-group">
-                            <input type="password" class="form-control" name="new_password" id="newPasswordInput"
-                                required placeholder="Enter new password">
-                            <button class="btn btn-outline-secondary" type="button" id="togglePasswordBtn"
-                                onclick="togglePassword('newPasswordInput', this)">
-                                <i class="bi bi-eye"></i>
-                            </button>
+    <!-- Admin Set Password Modal -->
+    <div class="modal fade" id="adminSetPasswordModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Set Password for <span id="modalUserName"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form action="{{ url_for('set_user_password') }}" method="POST">
+                        <input type="hidden" name="user_id" id="modalUserId">
+                        <div class="mb-3">
+                            <label class="form-label">New Password</label>
+                            <input type="text" class="form-control" name="new_password" required
+                                placeholder="Enter new password">
                         </div>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Update Password</button>
-                </form>
+                        <button type="submit" class="btn btn-primary w-100">Update Password</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
+    {% endblock %}
 
-{% endblock %}
+    {% block scripts %}
+    <script>
+        function deleteSingleRecord(type, id) {
+            if (!confirm('Delete this record?')) return;
 
-{% block scripts %}
-<script>
-    function deleteSingleRecord(type, id) {
-        if (!confirm('Delete this record?')) return;
-
-        var f = document.createElement('form');
-        f.method = 'POST';
-        // Construct URL manually since we passed raw IDs
-        // URL pattern: /admin/delete_record/<type>/<id>
-        f.action = '/admin/delete_record/' + type + '/' + id;
-        document.body.appendChild(f);
-        f.submit();
-    }
-
-    function toggleAll(headerId, name) {
-        var header = document.getElementById(headerId);
-        var checkboxes = document.getElementsByName(name);
-        for (var i = 0; i < checkboxes.length; i++) {
-            checkboxes[i].checked = header.checked;
+            var f = document.createElement('form');
+            f.method = 'POST';
+            // Construct URL manually since we passed raw IDs
+            // URL pattern: /admin/delete_record/<type>/<id>
+            f.action = '/admin/delete_record/' + type + '/' + id;
+            document.body.appendChild(f);
+            f.submit();
         }
-    }
 
-    function submitBatchDeleteRecords() {
-        var checkboxes = document.getElementsByName('record_ids');
-        var checked = false;
-        for (var i = 0; i < checkboxes.length; i++) {
-            if (checkboxes[i].checked) checked = true;
-        }
-        if (!checked) {
-            alert('Please select records to delete.');
-            return;
-        }
-        document.getElementById('batchDeleteRecordsForm').submit();
-    }
-
-    function submitBatchDeleteFarmers() {
-        var checkboxes = document.getElementsByName('user_ids');
-        var checked = false;
-        for (var i = 0; i < checkboxes.length; i++) {
-            if (checkboxes[i].checked) checked = true;
-        }
-        if (!checked) {
-            alert('Please select farmers to delete.');
-            return;
-        }
-        document.getElementById('batchDeleteFarmersForm').submit();
-    }
-
-    function openSetPasswordModal(userId, username) {
-        var modalEl = document.getElementById('adminSetPasswordModal');
-        if (!modalEl) return;
-
-        // Set values
-        var inputId = document.getElementById('modalUserId');
-        var labelName = document.getElementById('modalUserName');
-
-        if (inputId) inputId.value = userId;
-        if (labelName) labelName.innerText = username;
-
-        // Reset password field state
-        var passInput = document.getElementById('newPasswordInput');
-        if (passInput) {
-            passInput.value = '';
-            passInput.type = 'password';
-        }
-        var toggleBtn = document.getElementById('togglePasswordBtn');
-        if (toggleBtn) {
-            var icon = toggleBtn.querySelector('i');
-            if (icon) {
-                icon.classList.remove('bi-eye-slash');
-                icon.classList.add('bi-eye');
+        function toggleAll(headerId, name) {
+            var header = document.getElementById(headerId);
+            var checkboxes = document.getElementsByName(name);
+            for (var i = 0; i < checkboxes.length; i++) {
+                checkboxes[i].checked = header.checked;
             }
         }
 
-        if (typeof bootstrap !== 'undefined') {
-            var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        function submitBatchDeleteRecords() {
+            var checkboxes = document.getElementsByName('record_ids');
+            var checked = false;
+            for (var i = 0; i < checkboxes.length; i++) {
+                if (checkboxes[i].checked) checked = true;
+            }
+            if (!checked) {
+                alert('Please select records to delete.');
+                return;
+            }
+            document.getElementById('batchDeleteRecordsForm').submit();
+        }
+
+        function submitBatchDeleteFarmers() {
+            var checkboxes = document.getElementsByName('user_ids');
+            var checked = false;
+            for (var i = 0; i < checkboxes.length; i++) {
+                if (checkboxes[i].checked) checked = true;
+            }
+            if (!checked) {
+                alert('Please select farmers to delete.');
+                return;
+            }
+            document.getElementById('batchDeleteFarmersForm').submit();
+        }
+
+        function openSetPasswordModal(userId, username) {
+            try {
+                console.log("Opening password modal for user:", userId, username);
+
+                var modalEl = document.getElementById('adminSetPasswordModal');
+                if (!modalEl) {
+                    alert("Error: Password modal element not found in DOM.");
+                    return;
+                }
+
+                // Set values
+                var inputId = document.getElementById('modalUserId');
+                var labelName = document.getElementById('modalUserName');
+
+                if (inputId) inputId.value = userId;
+                if (labelName) labelName.innerText = username;
+
+                // Open Modal
+                // Check if bootstrap is defined
+                if (typeof bootstrap === 'undefined') {
+                    alert("Error: Bootstrap JS is not loaded.");
+                    return;
+                }
+
+                var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
+            } catch (e) {
+                console.error(e);
+                alert("An error occurred opening the modal: " + e.message);
+            }
+        }
+
+        function toggleTargetInput() {
+            var type = document.getElementById('target_type').value;
+            document.getElementById('div_municipality').classList.add('d-none');
+            document.getElementById('div_user').classList.add('d-none');
+
+            // Disable inputs to avoid submitting wrong value key
+            document.getElementById('select_municipality').name = 'ignore';
+            document.getElementById('select_user').name = 'ignore';
+
+            if (type === 'municipality') {
+                document.getElementById('div_municipality').classList.remove('d-none');
+                document.getElementById('select_municipality').name = 'target_value';
+            } else if (type === 'user') {
+                document.getElementById('div_user').classList.remove('d-none');
+                document.getElementById('select_user').name = 'target_value';
+            }
+        }
+
+        function openReportModalFromData(el) {
+            var id = el.getAttribute('data-id');
+            var user = el.getAttribute('data-user');
+            var status = el.getAttribute('data-status');
+            var desc = el.getAttribute('data-desc');
+            var imageSrc = el.getAttribute('data-image');
+            var location = el.getAttribute('data-location');
+
+            document.getElementById('modalReportId').value = id;
+            document.getElementById('modalReportUser').innerText = user;
+            document.getElementById('modalReportLocation').innerText = location;
+            document.getElementById('modalReportDesc').innerText = desc;
+            document.getElementById('modalReportImage').src = imageSrc;
+
+            var badge = document.getElementById('modalReportStatusBadge');
+            badge.innerText = status;
+            if (status === 'Pending') { badge.className = 'badge bg-warning text-dark'; }
+            else if (status === 'Read') { badge.className = 'badge bg-info'; }
+            else if (status === 'Resolved') { badge.className = 'badge bg-success'; }
+
+            var modal = new bootstrap.Modal(document.getElementById('reportModal'));
             modal.show();
         }
-    }
 
-    function toggleTargetInput() {
-        var type = document.getElementById('target_type').value;
-        document.getElementById('div_municipality').classList.add('d-none');
-        document.getElementById('div_user').classList.add('d-none');
+        // Initialize map
+        // We wrap this in a check or event listener because hidden tabs can sometimes mess up Leaflet size
+        var mapInitialized = false;
+        var map;
 
-        // Disable inputs to avoid submitting wrong value key
-        document.getElementById('select_municipality').name = 'ignore';
-        document.getElementById('select_user').name = 'ignore';
+        function initMap() {
+            if (mapInitialized) return;
 
-        if (type === 'municipality') {
-            document.getElementById('div_municipality').classList.remove('d-none');
-            document.getElementById('select_municipality').name = 'target_value';
-        } else if (type === 'user') {
-            document.getElementById('div_user').classList.remove('d-none');
-            document.getElementById('select_user').name = 'target_value';
-        }
-    }
-
-    function openReportModalFromData(el) {
-        var id = el.getAttribute('data-id');
-        var user = el.getAttribute('data-user');
-        var status = el.getAttribute('data-status');
-        var desc = el.getAttribute('data-desc');
-        var imageSrc = el.getAttribute('data-image');
-        var location = el.getAttribute('data-location');
-
-        document.getElementById('modalReportId').value = id;
-        document.getElementById('modalReportUser').innerText = user;
-        document.getElementById('modalReportLocation').innerText = location;
-        document.getElementById('modalReportDesc').innerText = desc;
-        document.getElementById('modalReportImage').src = imageSrc;
-
-        var badge = document.getElementById('modalReportStatusBadge');
-        badge.innerText = status;
-        if (status === 'Pending') { badge.className = 'badge bg-warning text-dark'; }
-        else if (status === 'Read') { badge.className = 'badge bg-info'; }
-        else if (status === 'Resolved') { badge.className = 'badge bg-success'; }
-
-        var modal = new bootstrap.Modal(document.getElementById('reportModal'));
-        modal.show();
-    }
-
-    // Initialize map
-    // We wrap this in a check or event listener because hidden tabs can sometimes mess up Leaflet size
-    var mapInitialized = false;
-    var map;
-
-    function initMap() {
-        if (mapInitialized) return;
-
-        map = L.map('map').setView([14.28, 120.92], 12);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
-
-        // Data passed from Flask is safe for JS
-        var mapData = JSON.parse('{{ map_data|tojson|safe }}');
-
-        mapData.forEach(function (point) {
-            var fillColor = '#808080';
-            if (point.color === 'red') fillColor = '#d32f2f';
-            if (point.color === 'orange') fillColor = '#ff9800';
-            if (point.color === 'green') fillColor = '#388e3c';
-            if (point.color === 'yellow') fillColor = '#fbc02d';
-
-            var circle = L.circleMarker([point.lat, point.lng], {
-                color: fillColor,
-                fillColor: fillColor,
-                fillOpacity: 0.7,
-                radius: 10
+            map = L.map('map').setView([14.28, 120.92], 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
 
-            circle.bindPopup(`
+            // Data passed from Flask is safe for JS
+            var mapData = JSON.parse('{{ map_data|tojson|safe }}');
+
+            mapData.forEach(function (point) {
+                var fillColor = '#808080';
+                if (point.color === 'red') fillColor = '#d32f2f';
+                if (point.color === 'orange') fillColor = '#ff9800';
+                if (point.color === 'green') fillColor = '#388e3c';
+                if (point.color === 'yellow') fillColor = '#fbc02d';
+
+                var circle = L.circleMarker([point.lat, point.lng], {
+                    color: fillColor,
+                    fillColor: fillColor,
+                    fillOpacity: 0.7,
+                    radius: 10
+                }).addTo(map);
+
+                circle.bindPopup(`
                 <b>${point.name}</b><br>
                 Pests: <span class="text-danger fw-bold">${point.pests}</span><br>
                 Beneficials: <span class="text-success fw-bold">${point.beneficials}</span>
             `);
+            });
+
+            mapInitialized = true;
+        }
+
+        // Initialize map on load (since tab 1 is active)
+        document.addEventListener("DOMContentLoaded", function () {
+            initMap();
+
+            // Check for hash in URL to activate specific tab
+            var hash = window.location.hash; // logs
+            if (hash) {
+                // hash = #logs
+                // The button ID convention I used is 'logs-tab'
+                var triggerEl = document.querySelector('button[data-bs-target="' + hash + '"]');
+                if (triggerEl) {
+                    triggerEl.click();
+                }
+            }
+
+            // Init Admin Charts
+            // Use try-catch or checks in case data is empty
+            try {
+                var ctxD = document.getElementById('adminDailyChart').getContext('2d');
+                new Chart(ctxD, {
+                    type: 'bar', // Bar instead of line for global aggregate usually looks better
+                    data: {
+                        labels: JSON.parse('{{ chart_daily.labels|tojson|safe }}'),
+                        datasets: [{
+                            label: 'Total Detections',
+                            data: JSON.parse('{{ chart_daily.counts|tojson|safe }}'),
+                            backgroundColor: '#3f51b5'
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+
+                var ctxI = document.getElementById('adminInsectChart').getContext('2d');
+                new Chart(ctxI, {
+                    type: 'pie',
+                    data: {
+                        labels: JSON.parse('{{ chart_insects.labels|tojson|safe }}'),
+                        datasets: [{
+                            data: JSON.parse('{{ chart_insects.counts|tojson|safe }}'),
+                            backgroundColor: [
+                                '#e57373', '#81c784', '#64b5f6', '#ffd54f', '#ba68c8', '#4db6ac', '#7986cb', '#a1887f'
+                            ]
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+                });
+            } catch (e) { console.error("Chart init error", e); }
         });
 
-        mapInitialized = true;
-    }
+        // Also invalidate size when tab triggers
+        var triggerTabList = [].slice.call(document.querySelectorAll('#adminTabs button'))
+        triggerTabList.forEach(function (triggerEl) {
+            triggerEl.addEventListener('shown.bs.tab', function (event) {
+                if (event.target.id === 'heatmap-tab') {
+                    if (map) map.invalidateSize();
+                }
+            })
+        })
 
-    // Initialize map on load (since tab 1 is active)
-    document.addEventListener("DOMContentLoaded", function () {
-        initMap();
+        // --- Advanced Filters Logic for Logs ---
+        function applyLogFilters() {
+            var text = document.getElementById('logsSearch').value.toLowerCase();
+            var insect = document.getElementById('logsInsectFilter').value.toLowerCase();
+            var location = document.getElementById('logsLocationFilter').value.toLowerCase();
+            var dateInput = document.getElementById('logsDateFilter').value; // YYYY-MM-DD format from input
 
-        // Check for hash in URL to activate specific tab
-        var hash = window.location.hash; // logs
-        if (hash) {
-            // hash = #logs
-            // The button ID convention I used is 'logs-tab'
-            var triggerEl = document.querySelector('button[data-bs-target="' + hash + '"]');
-            if (triggerEl) {
-                triggerEl.click();
+            var table = document.getElementById('logsTable');
+            var tr = table.getElementsByTagName("tr");
+
+            for (var i = 1; i < tr.length; i++) {
+                var show = true;
+
+                // Columns (0-based indices from THEAD):
+                // 0: Checkbox, 1: Date, 2: Farmer(Name+Loc), 3: Insect, 4: Type, 5: Count...
+
+                // 1. Text Search (Check entire row)
+                if (text && tr[i].innerText.toLowerCase().indexOf(text) === -1) show = false;
+
+                // 2. Insect Filter (Col 3)
+                if (show && insect !== 'all') {
+                    if (tr[i].cells[3].innerText.toLowerCase().indexOf(insect) === -1) show = false;
+                }
+
+                // 3. Location Filter (Col 2 - Farmer Column contains "Name<br>Municipality, Barangay" or similar)
+                // Actually in the logs table: 
+                // <td><strong>Name</strong><br><small>Municipality</small></td> -> wait, let's check template structure
+                // Logic: It prints user.municipality. We might need to inject Barangay distinct column or just search text.
+                // The current template prints "Municipality" but maybe not Barangay? 
+                // Let's rely on loose text search in the Farmer column for now if the data is there, 
+                // OR better, let's request the user to verify if Barangay is shown.
+                // Looking at Log Table TD 2: It shows user.municipality but NOT street_barangay in the previous view.
+                // WE SHOULD UPDATE THE TABLE ROW TO SHOW BARANGAY for this filter to work!
+                // Assuming we will update the table row to include Barangay.
+                if (show && location !== 'all') {
+                    if (tr[i].innerText.toLowerCase().indexOf(location) === -1) show = false;
+                }
+
+                // 4. Date Filter (Col 1: YYYY-MM-DD HH:MM)
+                if (show && dateInput) {
+                    // split YYYY-MM-DD from cell
+                    var cellDate = tr[i].cells[1].innerText.trim().substring(0, 10);
+                    if (cellDate !== dateInput) show = false;
+                }
+
+                tr[i].style.display = show ? "" : "none";
             }
         }
 
-        // Add click listeners to update hash
-        var tabEls = document.querySelectorAll('button[data-bs-toggle="tab"]');
-        tabEls.forEach(function (tabEl) {
-            tabEl.addEventListener('shown.bs.tab', function (event) {
-                var target = event.target.getAttribute('data-bs-target');
-                if (target) {
-                    history.replaceState(null, null, target);
+        // --- Generic Search & Filter Function for Farmers/Reports ---
+        function filterTable(tableId, inputId, selectId, filterColIndex) {
+            var input = inputId ? document.getElementById(inputId) : null;
+            var filter = input ? input.value.toLowerCase() : '';
+
+            var select = selectId ? document.getElementById(selectId) : null;
+            var category = select ? select.value.toLowerCase() : 'all';
+
+            var table = document.getElementById(tableId);
+            if (!table) return;
+            var tr = table.getElementsByTagName("tr");
+
+            // Loop through all table rows, and hide those who don't match the search query
+            for (var i = 1; i < tr.length; i++) { // Start at 1 to skip header
+                var show = true;
+
+                // 1. Text Search (Matches ANY column content)
+                if (filter) {
+                    var rowText = tr[i].innerText.toLowerCase();
+                    if (rowText.indexOf(filter) === -1) {
+                        show = false;
+                    }
                 }
-            });
-        });
 
-        // Init Admin Charts
-        // Use try-catch or checks in case data is empty
-        try {
-            var ctxD = document.getElementById('adminDailyChart').getContext('2d');
-            new Chart(ctxD, {
-                type: 'bar', // Bar instead of line for global aggregate usually looks better
-                data: {
-                    labels: JSON.parse('{{ chart_daily.labels|tojson|safe }}'),
-                    datasets: [{
-                        label: 'Total Detections',
-                        data: JSON.parse('{{ chart_daily.counts|tojson|safe }}'),
-                        backgroundColor: '#3f51b5'
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
+                // 2. Column Category Filter
+                if (show && category !== 'all' && filterColIndex !== null) {
+                    var td = tr[i].getElementsByTagName("td")[filterColIndex];
+                    if (td) {
+                        // Check textual content of the specific column
+                        var cellText = td.innerText.toLowerCase();
+                        // Simple check: does the cell contain the category text?
+                        // Example: "Pending" cell contains "pending"
+                        if (cellText.trim().indexOf(category) === -1) {
+                            show = false;
+                        }
+                    }
+                }
 
-            var ctxI = document.getElementById('adminInsectChart').getContext('2d');
-            new Chart(ctxI, {
-                type: 'pie',
-                data: {
-                    labels: JSON.parse('{{ chart_insects.labels|tojson|safe }}'),
-                    datasets: [{
-                        data: JSON.parse('{{ chart_insects.counts|tojson|safe }}'),
-                        backgroundColor: [
-                            '#e57373', '#81c784', '#64b5f6', '#ffd54f', '#ba68c8', '#4db6ac', '#7986cb', '#a1887f'
-                        ]
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-            });
-        } catch (e) { console.error("Chart init error", e); }
-    });
-
-    // Also invalidate size when tab triggers
-    var triggerTabList = [].slice.call(document.querySelectorAll('#adminTabs button'))
-    triggerTabList.forEach(function (triggerEl) {
-        triggerEl.addEventListener('shown.bs.tab', function (event) {
-            if (event.target.id === 'heatmap-tab') {
-                if (map) map.invalidateSize();
+                tr[i].style.display = show ? "" : "none";
             }
-        });
-    });
-</script>
-{% endblock %}
+        }
+    </script>
+    {% endblock %}

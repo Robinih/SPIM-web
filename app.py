@@ -306,56 +306,134 @@ def api_notifications():
 
 # Helper Function for Auto-Threshold
 def check_infestation_threshold(user_id, municipality):
-    # Logic: If total pests for this user today > 20 -> Alert
-    # Or simplified: if total recent pest uploads > threshold
+    # Logic: Align with Heatmap Legend
+    # Red (>15 Pests): High Alert
+    # Orange (6-15 Pests): Medium Alert
+    # Scope: TODAY'S activity
     
-    # 1. Get recent pest counts (e.g., last 24h, but for simplicity, total unread high alerts?)
-    # For this demo, let's just check if the LATEST upload pushed them over a daily limit
-    # We'll approximate by counting total PEST records for the user.
+    now_ph = datetime.utcnow() + timedelta(hours=8)
+    today_start = now_ph.replace(hour=0, minute=0, second=0, microsecond=0)
     
-    pests = DetectionRecord.query.filter_by(user_id=user_id, is_beneficial=False).count()
+    # 1. Count Pests TODAY
+    # Detections
+    pests = DetectionRecord.query.filter_by(user_id=user_id, is_beneficial=False)\
+        .filter(DetectionRecord.timestamp >= today_start).count()
     
-    # Check counts too
-    counts = CountingRecord.query.filter_by(user_id=user_id).all()
+    # Counts
+    counts = CountingRecord.query.filter_by(user_id=user_id)\
+        .filter(CountingRecord.timestamp >= today_start).all()
+        
     for c in counts:
         if c.breakdown:
             try:
                 data = json.loads(c.breakdown)
                 for insect, val in data.items():
+                    safe_count = 0
+                    if isinstance(val, (int, float)): safe_count = int(val)
+                    elif isinstance(val, str) and val.isdigit(): safe_count = int(val)
+                    elif isinstance(val, dict): safe_count = int(val.get('count', 0))
+                    
                     if not is_beneficial(insect):
-                        pests += val
+                        pests += safe_count
             except:
-                pass
-                
-    THRESHOLD = 20
-    if pests > THRESHOLD:
-        # Rate Limiting: Max 3 times per day
-        # Use PH Time for consistency with DB defaults
-        now_ph = datetime.utcnow() + timedelta(hours=8)
-        today_start = now_ph.replace(hour=0, minute=0, second=0, microsecond=0)
-        daily_alert_count = Notification.query.filter_by(user_id=user_id, level='High')\
-            .filter(Notification.timestamp >= today_start).count()
-            
-        if daily_alert_count < 3:
-            # Check cooldown (avoid spamming within the same hour even if 3 attempts remain)
-            last_notif = Notification.query.filter_by(user_id=user_id, level='High').order_by(Notification.timestamp.desc()).first()
-            
-            should_send = True
-            if last_notif:
-                # If last notification was less than 1 hour ago
-                # Last notif timestamp is already PH time (from DB default)
-                # Compare vs now_ph
-                if (now_ph - last_notif.timestamp).total_seconds() < 3600:
-                    should_send = False
-            
-            if should_send:
-                msg = f"High Pest Activity Detected! Total Count: {pests}. Please check your crops in {municipality}."
-                new_notif = Notification(user_id=user_id, message=msg, level='High')
-                db.session.add(new_notif)
-                db.session.commit()
-                print(f"DEBUG: Auto-Alert sent to User {user_id} ({daily_alert_count + 1}/3 today)")
+                pests += c.total_count # Assume pest if mixed/fail
         else:
-            print(f"DEBUG: Alert limit reached for User {user_id}")
+             pests += c.total_count
+
+    # 2. Determine Severity
+    level = None
+    if pests > 15:
+        level = 'High'
+    elif pests > 5:
+        level = 'Medium'
+    
+    if not level:
+        return # No alert needed
+
+    # 3. Rate Limiting & Cooldown
+    # We don't want to spam. 
+    # Logic: 
+    # - Max 3 High alerts per day.
+    # - Max 1 Medium alert per day (to warn), unless it upgrades to High later.
+    # - 1 Hour cooldown between ANY alert for this user to avoid rapid fire during uploads.
+    
+    last_notif = Notification.query.filter_by(user_id=user_id)\
+        .filter(Notification.timestamp >= today_start)\
+        .order_by(Notification.timestamp.desc()).first()
+        
+    if last_notif:
+        # Global Cooldown: 1 Hour
+        if (now_ph - last_notif.timestamp).total_seconds() < 3600:
+            return # Too soon
+            
+        # If we already sent a High alert today, do we send Medium? No.
+        if last_notif.level == 'High' and level == 'Medium':
+            return # Downgrade not urgent
+            
+        # If we already sent a High alert, and this is another High alert...
+        if last_notif.level == 'High' and level == 'High':
+            # Check max limit (3)
+            high_count = Notification.query.filter_by(user_id=user_id, level='High')\
+                .filter(Notification.timestamp >= today_start).count()
+            if high_count >= 3:
+                return # Limit reached
+    
+    # Send Alert
+    msg = ""
+    if level == 'High':
+        msg = f"CRITICAL: High Pest Activity ({pests} detected today) in {municipality}. Immediate check recommended."
+    elif level == 'Medium':
+        # Check if we already sent a Medium alert today?
+        medium_count = Notification.query.filter_by(user_id=user_id, level='Medium')\
+            .filter(Notification.timestamp >= today_start).count()
+        if medium_count >= 1:
+            return # One warning is enough unless it becomes High
+            
+        msg = f"WARNING: Elevated Pest Activity ({pests} detected today) in {municipality}."
+        
+    if msg:
+        new_notif = Notification(user_id=user_id, message=msg, level=level)
+        db.session.add(new_notif)
+        db.session.commit()
+        print(f"DEBUG: Auto-Alert ({level}) sent to User {user_id}")
+
+@app.route('/admin/debug/test_alert', methods=['POST'])
+@login_required
+def test_alert():
+    if current_user.role != 'admin':
+        return jsonify({"error": "Unauthorized"}), 403
+        
+    user_id = request.form.get('user_id')
+    pests_to_add = int(request.form.get('pests_to_add', 10))
+    
+    target_user = User.query.get(user_id)
+    if not target_user:
+        # Default to first farmer if not specified
+        target_user = User.query.filter_by(role='farmer').first()
+        
+    if not target_user:
+        flash("No farmers available to test.", "danger")
+        return redirect(url_for('admin_dashboard', _anchor='alerts'))
+        
+    # Create Dummy Records to Trigger Threshold
+    # We add them as 'Test Pest'
+    for i in range(pests_to_add):
+        rec = DetectionRecord(
+            user_id=target_user.id,
+            insect_name="Test Pest (Simulated)",
+            confidence=0.99,
+            image_file="test_image.jpg", # Placeholder
+            is_beneficial=False
+        )
+        db.session.add(rec)
+    
+    db.session.commit()
+    
+    # Trigger Check
+    check_infestation_threshold(target_user.id, target_user.municipality)
+    
+    flash(f"Simulated adding {pests_to_add} pests for {target_user.full_name}. Check 'Recent Alerts' below.", "success")
+    return redirect(url_for('admin_dashboard', _anchor='alerts'))
 
 # --- Web Routes ---
 
@@ -675,6 +753,131 @@ def dashboard():
                            insect_breakdown=insect_stats, # Pass raw stats for display
                            recommendations=recommendations)
 
+@app.route('/admin/farmer/<int:user_id>')
+@login_required
+def admin_farmer_view(user_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('dashboard'))
+        
+    target_user = User.query.get_or_404(user_id)
+    
+    # 1. Fetch Records for Target User
+    detections = DetectionRecord.query.filter_by(user_id=target_user.id).order_by(DetectionRecord.timestamp.desc()).all()
+    counts = CountingRecord.query.filter_by(user_id=target_user.id).order_by(CountingRecord.timestamp.desc()).all()
+    recommendations = Recommendation.query.filter_by(user_id=target_user.id).order_by(Recommendation.timestamp.desc()).all()
+    
+    # Reuse Logic from dashboard() but scoped to target_user
+    # 2. Unified Timeline List
+    timeline = []
+    
+    for d in detections:
+        timeline.append({
+            'type': 'Identify',
+            'timestamp': d.timestamp,
+            'desc': d.insect_name,
+            'count': 1,
+            'status': 'Beneficial' if d.is_beneficial else 'Pest',
+            'image': d.image_file
+        })
+        
+    for c in counts:
+        parsed = False
+        if c.breakdown:
+            try:
+                data = json.loads(c.breakdown)
+                # If breakdown exists, we can split it or keep as one. 
+                # Farmer dashboard splits them in timeline if possible.
+                for name, val in data.items():
+                    safe_count = 0
+                    if isinstance(val, (int, float)): safe_count = int(val)
+                    elif isinstance(val, str) and val.isdigit(): safe_count = int(val)
+                    elif isinstance(val, dict): safe_count = int(val.get('count', 0))
+                        
+                    timeline.append({
+                        'type': 'Count',
+                        'timestamp': c.timestamp,
+                        'desc': name,
+                        'count': safe_count,
+                        'status': 'Beneficial' if is_beneficial(name) else 'Pest',
+                        'image': c.image_file
+                    })
+                parsed = True
+            except:
+                pass
+        
+        if not parsed:
+            timeline.append({
+                'type': 'Count',
+                'timestamp': c.timestamp,
+                'desc': "Mixed Count",
+                'count': c.total_count,
+                'status': 'Pest',
+                'image': c.image_file
+            })
+        
+    timeline.sort(key=lambda x: x['timestamp'], reverse=True)
+    
+    # 3. Stats for Charts
+    daily_stats = {}
+    insect_stats = {}
+    total_pests = 0
+    total_beneficials = 0
+    
+    def add_stat(date_str, insect_name, count):
+        daily_stats[date_str] = daily_stats.get(date_str, 0) + count
+        insect_stats[insect_name] = insect_stats.get(insect_name, 0) + count
+        
+    for d in detections:
+        add_stat(d.timestamp.strftime('%Y-%m-%d'), d.insect_name, 1)
+        if d.is_beneficial:
+            total_beneficials += 1
+        else:
+            total_pests += 1
+        
+    for c in counts:
+        d_str = c.timestamp.strftime('%Y-%m-%d')
+        if c.breakdown:
+            try:
+                data = json.loads(c.breakdown)
+                for name, val in data.items():
+                    safe_count = 0
+                    if isinstance(val, (int, float)): safe_count = int(val)
+                    elif isinstance(val, str) and val.isdigit(): safe_count = int(val)
+                    elif isinstance(val, dict): safe_count = int(val.get('count', 0))
+                    
+                    add_stat(d_str, name, safe_count)
+                    if is_beneficial(name):
+                        total_beneficials += safe_count
+                    else:
+                        total_pests += safe_count
+            except:
+                add_stat(d_str, 'Mixed', c.total_count)
+                total_pests += c.total_count
+        else:
+            add_stat(d_str, 'Mixed', c.total_count)
+            total_pests += c.total_count
+            
+    sorted_dates = sorted(daily_stats.keys())
+    chart_daily = {
+        'labels': sorted_dates,
+        'counts': [daily_stats[d] for d in sorted_dates]
+    }
+    
+    chart_insects = {
+        'labels': list(insect_stats.keys()),
+        'counts': list(insect_stats.values())
+    }
+
+    return render_template('admin_farmer_view.html', 
+                           farmer=target_user,
+                           timeline=timeline,
+                           chart_daily=chart_daily,
+                           pests=total_pests,
+                           beneficials=total_beneficials,
+                           chart_insects=chart_insects,
+                           insect_breakdown=insect_stats,
+                           recommendations=recommendations)
+
 @app.route('/admin/dashboard')
 @login_required
 def admin_dashboard():
@@ -687,24 +890,68 @@ def admin_dashboard():
     
     # Daily Filter Start
     # 1. Determine Timeframe
-    timeframe = request.args.get('timeframe', 'daily') # daily, weekly, monthly
+    timeframe = request.args.get('timeframe', 'daily') # daily, weekly, monthly, past3ds, custom
     
     now_ph = datetime.utcnow() + timedelta(hours=8)
     
+    # Default message for display
+    current_range_display = "Today"
+
     if timeframe == 'weekly':
         start_date = now_ph - timedelta(days=7)
+        current_range_display = "Last 7 Days"
     elif timeframe == 'monthly':
         start_date = now_ph - timedelta(days=30)
+        current_range_display = "Last 30 Days"
+    elif timeframe == 'past3ds':
+        start_date = now_ph - timedelta(days=3)
+        current_range_display = "Past 3 Days"
+    elif timeframe == 'custom':
+        s_str = request.args.get('start_date')
+        e_str = request.args.get('end_date')
+        if s_str and e_str:
+            try:
+                start_date = datetime.strptime(s_str, '%Y-%m-%d')
+                # End date should be end of that day
+                end_date_obj = datetime.strptime(e_str, '%Y-%m-%d')
+                # We need to filter by range, so for single day end date needs to be next day 00:00 or modify query
+                # Simpler: use the provided end date + 23:59:59
+                current_range_display = f"{s_str} to {e_str}"
+            except:
+                # Fallback
+                start_date = now_ph.replace(hour=0, minute=0, second=0, microsecond=0)
+                current_range_display = "Invalid Date Range (Showing Today)"
+        else:
+            start_date = now_ph.replace(hour=0, minute=0, second=0, microsecond=0)
     else: # daily
         start_date = now_ph.replace(hour=0, minute=0, second=0, microsecond=0)
+        current_range_display = "Today"
 
     for u in users:
         u_pests = 0
         u_beneficials = 0
         
-        # Detections (Filtered)
-        u_detections = DetectionRecord.query.filter_by(user_id=u.id)\
-            .filter(DetectionRecord.timestamp >= start_date).all()
+        # Base query for detections
+        d_query = DetectionRecord.query.filter_by(user_id=u.id)
+        c_query = CountingRecord.query.filter_by(user_id=u.id)
+        
+        # Apply Date Filters
+        if timeframe == 'custom' and request.args.get('start_date') and request.args.get('end_date'):
+             try:
+                s_date = datetime.strptime(request.args.get('start_date'), '%Y-%m-%d')
+                e_date = datetime.strptime(request.args.get('end_date'), '%Y-%m-%d') + timedelta(days=1) # Include the end date fully
+                
+                d_query = d_query.filter(DetectionRecord.timestamp >= s_date).filter(DetectionRecord.timestamp < e_date)
+                c_query = c_query.filter(CountingRecord.timestamp >= s_date).filter(CountingRecord.timestamp < e_date)
+             except:
+                 pass
+        else:
+             d_query = d_query.filter(DetectionRecord.timestamp >= start_date)
+             c_query = c_query.filter(CountingRecord.timestamp >= start_date)
+        
+        # Execute
+        u_detections = d_query.all()
+        u_counts = c_query.all()
             
         for d in u_detections:
             if d.is_beneficial:
@@ -712,10 +959,6 @@ def admin_dashboard():
             else:
                 u_pests += 1
         
-        # Counts (Filtered)
-        u_counts = CountingRecord.query.filter_by(user_id=u.id)\
-            .filter(CountingRecord.timestamp >= start_date).all()
-            
         for c in u_counts:
              if c.breakdown:
                 try:
@@ -890,8 +1133,11 @@ def admin_dashboard():
 
     # 5. Fetch Recommendations
     recommendations = Recommendation.query.order_by(Recommendation.timestamp.desc()).all()
+    
+    # 6. Fetch Recent Notifications (for Admin Log)
+    recent_notifications = Notification.query.order_by(Notification.timestamp.desc()).limit(20).all()
 
-    # 6. Extract Unique Filter Data
+    # 7. Extract Unique Filter Data
     unique_insects = sorted(list(set(log['insect_name'] for log in all_logs)))
     unique_barangays = sorted(list(NAIC_BARANGAY_COORDS.keys()))
 
@@ -904,7 +1150,11 @@ def admin_dashboard():
                            recommendations=recommendations,
                            unique_insects=unique_insects,
                            unique_barangays=unique_barangays,
-                           current_timeframe=timeframe)
+                           current_timeframe=timeframe,
+                           current_range_display=current_range_display,
+                           start_date=request.args.get('start_date', ''),
+                           end_date=request.args.get('end_date', ''),
+                           notifications=recent_notifications)
 
 @app.route('/admin/recommendation/status', methods=['POST'])
 @login_required
@@ -1060,6 +1310,8 @@ def set_user_password():
     
     user_id = request.form.get('user_id')
     new_password = request.form.get('new_password')
+    
+    print(f"DEBUG: Admin setting password for user_id={user_id}, new_pass_len={len(new_password) if new_password else 0}")
     
     user = User.query.get_or_404(user_id)
     user.password_hash = generate_password_hash(new_password)

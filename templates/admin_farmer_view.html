@@ -22,8 +22,36 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        left: 10,
+                        right: 10,
+                        top: 10,
+                        bottom: 0
+                    }
+                },
                 scales: {
-                    y: { beginAtZero: true }
+                    x: {
+                        offset: true,
+                        grid: { display: false }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        suggestedMax: 5,
+                        grid: { borderDash: [2, 4] }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        titleColor: '#333',
+                        bodyColor: '#666',
+                        borderColor: '#ddd',
+                        borderWidth: 1
+                    }
                 }
             }
         });
@@ -49,35 +77,25 @@
                 }
             }
         });
-        // Tab Persistence
-        var hash = window.location.hash;
-        if (hash) {
-            var triggerEl = document.querySelector('button[data-bs-target="' + hash + '"]');
-            if (triggerEl) {
-                triggerEl.click();
-            }
-        }
-
-        var tabEls = document.querySelectorAll('button[data-bs-toggle="tab"]');
-        tabEls.forEach(function (tabEl) {
-            tabEl.addEventListener('shown.bs.tab', function (event) {
-                var target = event.target.getAttribute('data-bs-target');
-                if (target) {
-                    history.replaceState(null, null, target);
-                }
-            });
-        });
-
     });
 </script>
 {% endblock %}
 
 {% block content %}
 <div class="row mb-4">
-    <div class="col-12">
-        <h2 class="mb-3 fw-bold text-dark">Farmer Dashboard</h2>
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h6 class="text-muted text-uppercase mb-1">Admin View</h6>
+            <h2 class="mb-0 fw-bold text-dark">Farmer Dashboard: <span class="text-primary">{{ farmer.full_name
+                    }}</span></h2>
+        </div>
+        <a href="{{ url_for('admin_dashboard', _anchor='farmers') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Return to Admin Dashboard
+        </a>
     </div>
+</div>
 
+<div class="row mb-4">
     <!-- Health Card -->
     <div class="col-md-4">
         <div class="card shadow-sm border-0 rounded-3 h-100">
@@ -121,62 +139,43 @@
         </div>
     </div>
 
-    <!-- Mobile Sync Card -->
+    <!-- Location Card -->
     <div class="col-md-8">
-        <div class="card shadow-sm border-0 rounded-3 h-100 bg-info-subtle bg-gradient">
-            <div class="card-body p-4 d-flex flex-column flex-md-row align-items-center text-center text-md-start">
-                <div class="me-md-4 mb-3 mb-md-0 flex-shrink-0 text-info">
-                    <i class="bi bi-phone-vibrate display-5"></i>
-                </div>
-                <div>
-                    <h5 class="alert-heading fw-bold text-dark">Mobile Sync Active</h5>
-                    <p class="mb-0 text-dark opacity-75">Use the SPIM Android App to identify insects in the field. Your
-                        data automatically syncs here for detailed analysis and reporting.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Farmer Details Card (New) -->
-<div class="col-12 mt-4">
-    <div class="card shadow-sm border-0 rounded-3 h-100 bg-light">
-        <div class="card-body p-4">
-            <h5 class="alert-heading fw-bold text-dark mb-3">My Account Details</h5>
-            <div class="row">
-                <div class="col-md-6 mb-2">
-                    <small class="text-muted d-block">Username</small>
-                    <span class="fw-bold">{{ current_user.username }}</span>
-                </div>
-                <div class="col-md-6 mb-2">
-                    <small class="text-muted d-block">Municipality</small>
-                    <span class="fw-bold">{{ current_user.municipality }}</span>
-                </div>
-                <div class="col-md-6 mb-2">
-                    <small class="text-muted d-block">Barangay</small>
-                    <span class="fw-bold">{{ current_user.street_barangay }}</span>
-                </div>
-                <div class="col-md-6 mb-2">
-                    <small class="text-muted d-block">Coordinates</small>
-                    <span class="fw-bold font-monospace">{{ "%.5f"|format(current_user.latitude) if
-                        current_user.latitude
-                        else 'N/A' }}, {{ "%.5f"|format(current_user.longitude) if current_user.longitude else 'N/A'
-                        }}</span>
-                </div>
-                <div class="col-md-6 mb-2">
-                    <small class="text-muted d-block">Date Registered</small>
-                    <span class="fw-bold">
-                        {% if current_user.created_at %}
-                        {{ current_user.created_at.strftime('%b %d, %Y') }}
-                        {% else %}
-                        <span class="text-muted">-</span>
-                        {% endif %}
-                    </span>
+        <div class="card shadow-sm border-0 rounded-3 h-100 bg-light">
+            <div class="card-body p-4">
+                <h5 class="alert-heading fw-bold text-dark mb-3">Farmer Details</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <small class="text-muted d-block">Username</small>
+                        <span class="fw-bold">{{ farmer.username }}</span>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <small class="text-muted d-block">Municipality</small>
+                        <span class="fw-bold">{{ farmer.municipality }}</span>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <small class="text-muted d-block">Barangay</small>
+                        <span class="fw-bold">{{ farmer.street_barangay }}</span>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <small class="text-muted d-block">Coordinates</small>
+                        <span class="fw-bold font-monospace">{{ "%.5f"|format(farmer.latitude) if farmer.latitude else
+                            'N/A' }}, {{ "%.5f"|format(farmer.longitude) if farmer.longitude else 'N/A' }}</span>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <small class="text-muted d-block">Date Registered</small>
+                        <span class="fw-bold">
+                            {% if farmer.created_at %}
+                            {{ farmer.created_at.strftime('%b %d, %Y') }}
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 </div>
 
 <!-- Statistics Section -->
@@ -202,21 +201,6 @@
                 </div>
             </div>
         </div>
-    </div>
-</div>
-
-
-
-<!-- Action Buttons & Tabs Scaffolding -->
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0 text-secondary">My Farm Activity</h4>
-    <div class="btn-group">
-        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#mobileAppModal">
-            <i class="bi bi-camera me-1"></i> Identify
-        </button>
-        <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#mobileAppModal">
-            <i class="bi bi-123 me-1"></i> Count
-        </button>
     </div>
 </div>
 
@@ -280,7 +264,7 @@
                         <i class="bi bi-inbox display-1"></i>
                     </div>
                     <h5 class="fw-bold text-secondary">No activity yet</h5>
-                    <p class="text-muted">Start by identifying insects using the mobile app.</p>
+                    <p class="text-muted">Farmer has not synced any data.</p>
                 </div>
                 {% endif %}
             </div>
@@ -338,31 +322,13 @@
                                     <div class="text-muted mb-2">
                                         <i class="bi bi-clipboard-x display-6 opacity-25"></i>
                                     </div>
-                                    <p class="mb-0 text-muted">You have not submitted any field reports yet.</p>
+                                    <p class="mb-0 text-muted">No field reports submitted.</p>
                                 </td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
-<!-- Mobile App Feature Modal -->
-<div class="modal fade" id="mobileAppModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-body text-center p-5">
-                <div class="mb-4 text-primary">
-                    <i class="bi bi-phone-vibrate display-1"></i>
-                </div>
-                <h3 class="mb-3 fw-bold">Use the Mobile App</h3>
-                <p class="text-muted mb-4 lead fs-6">
-                    Insect identification and counting rely on your device's camera and specialized sensors.
-                    Please use the <strong>SPIM Android App</strong> to access these features.
-                </p>
-                <button type="button" class="btn btn-primary px-4 rounded-pill" data-bs-dismiss="modal">Got it</button>
             </div>
         </div>
     </div>

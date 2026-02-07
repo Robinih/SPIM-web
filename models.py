@@ -17,6 +17,7 @@ class User(UserMixin, db.Model):
     role = db.Column(db.String(50), default='farmer')
     latitude = db.Column(db.Float, nullable=True)
     longitude = db.Column(db.Float, nullable=True)
+    created_at = db.Column(db.DateTime, default=ph_time)
 
 class DetectionRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
