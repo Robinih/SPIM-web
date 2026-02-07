@@ -266,6 +266,7 @@ def api_recommendation():
         return jsonify({"message": "Recommendation submitted successfully"}), 201
 
     return jsonify({"error": "Failed to save"}), 500
+@app.route('/api/stats/dashboard', methods=['GET'])
 def api_stats_dashboard():
     # Sum Pests vs Beneficials from DetectionRecord
     pest_count = DetectionRecord.query.filter_by(is_beneficial=False).count()
