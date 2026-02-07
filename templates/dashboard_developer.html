@@ -3,7 +3,7 @@
 {% block content %}
 <div class="row mb-4">
     <div class="col-12">
-        <h2 class="mb-3">Developer Console</h2>
+        <h2 class="mb-3">Developer Dashboard</h2>
     </div>
 </div>
 
@@ -380,8 +380,9 @@
     <!-- TAB 4: Alerts -->
     <div class="tab-pane fade" id="alerts" role="tabpanel">
         <div class="row">
-            <div class="col-md-5">
-                <div class="card shadow-sm mb-4">
+            <!-- Col 1: Broadcast Alert -->
+            <div class="col-md-4">
+                <div class="card shadow-sm mb-4 h-100">
                     <div class="card-header bg-danger text-white">
                         <h5 class="mb-0">Broadcast Alert</h5>
                     </div>
@@ -432,8 +433,11 @@
                         </form>
                     </div>
                 </div>
+            </div>
 
-                <div class="card shadow-sm mt-4">
+            <!-- Col 2: Test Alert System -->
+            <div class="col-md-4">
+                <div class="card shadow-sm mb-4 h-100">
                     <div class="card-header bg-warning text-dark">
                         <h5 class="mb-0">Test Alert System</h5>
                     </div>
@@ -461,8 +465,9 @@
                 </div>
             </div>
 
-            <div class="col-md-7">
-                <div class="card shadow-sm">
+            <!-- Col 3: Recent Alerts -->
+            <div class="col-md-4">
+                <div class="card shadow-sm h-100">
                     <div class="card-header">
                         <h5 class="mb-0">Recent Alerts</h5>
                     </div>
