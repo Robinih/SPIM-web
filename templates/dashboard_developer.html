@@ -700,6 +700,51 @@
         }
     }
 
+    function applyLogFilters() {
+        var input = document.getElementById('logsSearch');
+        var filterText = input ? input.value.toUpperCase() : "";
+
+        var insectSelect = document.getElementById('logsInsectFilter');
+        var insectFilter = insectSelect ? insectSelect.value.toUpperCase() : "ALL";
+
+        var locSelect = document.getElementById('logsLocationFilter');
+        var locFilter = locSelect ? locSelect.value.toUpperCase() : "ALL";
+
+        var dateInput = document.getElementById('logsDateFilter');
+        var dateFilter = dateInput ? dateInput.value : "";
+
+        var table = document.getElementById('logsTable');
+        var tr = table.getElementsByTagName("tr");
+
+        for (var i = 1; i < tr.length; i++) {
+            var show = true;
+            var rowText = tr[i].innerText.toUpperCase();
+
+            // Text
+            if (filterText && rowText.indexOf(filterText) == -1) show = false;
+
+            // Insect (Column 3)
+            if (show && insectFilter !== "ALL") {
+                var td = tr[i].getElementsByTagName("td")[3];
+                if (td && td.innerText.toUpperCase().indexOf(insectFilter) == -1) show = false;
+            }
+
+            // Location (Column 2 - nested)
+            if (show && locFilter !== "ALL") {
+                var td = tr[i].getElementsByTagName("td")[2];
+                if (td && td.innerText.toUpperCase().indexOf(locFilter) == -1) show = false;
+            }
+
+            // Date (Column 1)
+            if (show && dateFilter) {
+                var td = tr[i].getElementsByTagName("td")[1];
+                if (td && td.innerText.indexOf(dateFilter) == -1) show = false;
+            }
+
+            tr[i].style.display = show ? "" : "none";
+        }
+    }
+
     function deleteSingleRecord(type, id) {
         if (!confirm('Delete this record?')) return;
 

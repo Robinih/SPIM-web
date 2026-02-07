@@ -633,7 +633,88 @@
 {% endblock %}
 
 {% block scripts %}
+
 <script>
+    // Filter function for tables
+    function filterTable(tableId, searchInputId, filterSelectId, filterColIndex) {
+        var input = document.getElementById(searchInputId);
+        var filter = input.value.toUpperCase();
+        var select = document.getElementById(filterSelectId);
+        var selectFilter = select ? select.value.toUpperCase() : "ALL";
+        var table = document.getElementById(tableId);
+        var tr = table.getElementsByTagName("tr");
+
+        for (var i = 1; i < tr.length; i++) {
+            var showRow = true;
+
+            // 1. Text Search (Search all text in row)
+            if (filter) {
+                if (tr[i].innerText.toUpperCase().indexOf(filter) === -1) {
+                    showRow = false;
+                }
+            }
+
+            // 2. Dropdown Filter (Specific Column)
+            if (showRow && selectFilter !== "ALL" && filterColIndex >= 0) {
+                var td = tr[i].getElementsByTagName("td")[filterColIndex];
+                if (td) {
+                    var txtValue = td.textContent || td.innerText;
+                    // Check if part of string (e.g. status)
+                    if (txtValue.toUpperCase().indexOf(selectFilter) === -1) {
+                        showRow = false;
+                    }
+                }
+            }
+
+            tr[i].style.display = showRow ? "" : "none";
+        }
+    }
+
+    function applyLogFilters() {
+        var input = document.getElementById('logsSearch');
+        var filterText = input ? input.value.toUpperCase() : "";
+
+        var insectSelect = document.getElementById('logsInsectFilter');
+        var insectFilter = insectSelect ? insectSelect.value.toUpperCase() : "ALL";
+
+        var locSelect = document.getElementById('logsLocationFilter');
+        var locFilter = locSelect ? locSelect.value.toUpperCase() : "ALL";
+
+        var dateInput = document.getElementById('logsDateFilter');
+        var dateFilter = dateInput ? dateInput.value : "";
+
+        var table = document.getElementById('logsTable');
+        var tr = table.getElementsByTagName("tr");
+
+        for (var i = 1; i < tr.length; i++) {
+            var show = true;
+            var rowText = tr[i].innerText.toUpperCase();
+
+            // Text
+            if (filterText && rowText.indexOf(filterText) == -1) show = false;
+
+            // Insect (Column 3)
+            if (show && insectFilter !== "ALL") {
+                var td = tr[i].getElementsByTagName("td")[3];
+                if (td && td.innerText.toUpperCase().indexOf(insectFilter) == -1) show = false;
+            }
+
+            // Location (Column 2 - nested)
+            if (show && locFilter !== "ALL") {
+                var td = tr[i].getElementsByTagName("td")[2];
+                if (td && td.innerText.toUpperCase().indexOf(locFilter) == -1) show = false;
+            }
+
+            // Date (Column 1)
+            if (show && dateFilter) {
+                var td = tr[i].getElementsByTagName("td")[1];
+                if (td && td.innerText.indexOf(dateFilter) == -1) show = false;
+            }
+
+            tr[i].style.display = show ? "" : "none";
+        }
+    }
+
     function deleteSingleRecord(type, id) {
         if (!confirm('Delete this record?')) return;
 
