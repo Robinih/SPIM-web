@@ -1650,6 +1650,56 @@ def mark_all_notifications_read():
     db.session.commit()
     return jsonify({"message": f"Marked {len(notifications)} notifications as read"}), 200
 
+@app.route('/api/notifications', methods=['GET'])
+@login_required
+def api_notifications():
+    # Return unread notifications for polling
+    notifications = Notification.query.filter_by(user_id=current_user.id, is_read=False)\
+        .order_by(Notification.timestamp.desc()).all()
+        
+    data = []
+    for n in notifications:
+        data.append({
+            'id': n.id,
+            'message': n.message,
+            'level': n.level,
+            'timestamp': n.timestamp.strftime('%Y-%m-%d %H:%M'),
+            'is_read': n.is_read,
+            'recipient_name': n.user.full_name
+        })
+    return jsonify(data)
+
+@app.route('/test_alert', methods=['POST'])
+@login_required
+def test_alert():
+    if current_user.role not in ['admin', 'developer']:
+        return jsonify({"error": "Unauthorized"}), 403
+        
+    user_id = request.form.get('user_id')
+    pests_to_add = int(request.form.get('pests_to_add', 20))
+    
+    target_user = User.query.get(user_id)
+    if not target_user:
+        flash('User not found.', 'danger')
+        return redirect(request.referrer)
+        
+    # Create a dummy counting record to simulate infestation
+    # This will be picked up by check_infestation_threshold
+    record = CountingRecord(
+        user_id=target_user.id,
+        total_count=pests_to_add,
+        image_file='test_alert_simulation.jpg', # Dummy file
+        breakdown=json.dumps({"Simulated Pest": pests_to_add})
+    )
+    db.session.add(record)
+    db.session.commit()
+    
+    # Trigger Check
+    check_infestation_threshold(target_user.id, target_user.municipality)
+    
+    flash(f'Simulated {pests_to_add} pests for {target_user.full_name}. check alerts.', 'success')
+    return redirect(request.referrer)
+
 # Initialize DB
 with app.app_context():
     db.create_all()
