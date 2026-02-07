@@ -289,7 +289,7 @@ def api_stats_dashboard():
 
 
 # Helper Function for Auto-Threshold
-def check_infestation_threshold(user_id, municipality):
+def check_infestation_threshold(user_id, municipality, is_test=False):
     # Logic: Align with Heatmap Legend
     # Red (>15 Pests): High Alert
     # Orange (6-15 Pests): Medium Alert
@@ -345,7 +345,7 @@ def check_infestation_threshold(user_id, municipality):
         .filter(Notification.timestamp >= today_start)\
         .order_by(Notification.timestamp.desc()).first()
         
-    if last_notif:
+    if last_notif and not is_test:
         # Global Cooldown: 1 Hour
         if (now_ph - last_notif.timestamp).total_seconds() < 3600:
             return # Too soon
@@ -1652,8 +1652,8 @@ def test_alert():
     db.session.add(record)
     db.session.commit()
     
-    # Trigger Check
-    check_infestation_threshold(target_user.id, target_user.municipality)
+    # Trigger Check with test flag to bypass cooldown
+    check_infestation_threshold(target_user.id, target_user.municipality, is_test=True)
     
     flash(f'Simulated {pests_to_add} pests for {target_user.full_name}. check alerts.', 'success')
     return redirect(request.referrer)
