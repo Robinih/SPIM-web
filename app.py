@@ -1611,16 +1611,23 @@ def mark_all_notifications_read():
     return jsonify({"message": f"Marked {len(notifications)} notifications as read"}), 200
 
 @app.route('/api/notifications', methods=['GET'])
-@login_required
 def api_notifications():
-    # Return unread notifications for polling
+    # Android API: Accept user_id as query parameter
+    user_id = request.args.get('user_id')
+    
+    if not user_id:
+        return jsonify({"error": "user_id parameter required"}), 400
+    
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
     # For Admin/Developer: Return ALL recent notifications (global log)
     # For Farmer: Return unread notifications for THEM
-    
-    if current_user.role in ['admin', 'developer']:
+    if user.role in ['admin', 'developer']:
         notifications = Notification.query.order_by(Notification.timestamp.desc()).limit(20).all()
     else:
-        notifications = Notification.query.filter_by(user_id=current_user.id, is_read=False)\
+        notifications = Notification.query.filter_by(user_id=user_id, is_read=False)\
             .order_by(Notification.timestamp.desc()).all()
         
     data = []
@@ -1630,10 +1637,36 @@ def api_notifications():
             'message': n.message,
             'level': n.level,
             'timestamp': n.timestamp.strftime('%Y-%m-%d %H:%M'),
-            'is_read': n.is_read,
-            'recipient_name': n.user.full_name
+            'is_read': n.is_read
         })
-    return jsonify(data)
+    return jsonify(data)  # Always returns array, empty [] if no notifications
+
+@app.route('/api/notifications/read/all', methods=['POST'])
+def mark_all_notifications_read():
+    # Android API: Mark all notifications as read for a user
+    user_id = request.args.get('user_id')
+    
+    if not user_id:
+        return jsonify({"error": "user_id parameter required"}), 400
+    
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    # Update all unread notifications for this user
+    notifications = Notification.query.filter_by(user_id=user_id, is_read=False).all()
+    count = 0
+    for n in notifications:
+        n.is_read = True
+        count += 1
+    
+    db.session.commit()
+    
+    return jsonify({
+        "message": "All notifications marked as read",
+        "count": count
+    }), 200
+
 
 @app.route('/test_alert', methods=['POST'])
 @login_required
