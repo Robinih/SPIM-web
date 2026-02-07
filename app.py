@@ -767,7 +767,7 @@ def dashboard():
 @app.route('/admin/farmer/<int:user_id>')
 @login_required
 def admin_farmer_view(user_id):
-    if current_user.role != 'admin':
+    if current_user.role not in ['admin', 'developer']:
         return redirect(url_for('dashboard'))
         
     target_user = User.query.get_or_404(user_id)
@@ -1346,7 +1346,7 @@ def developer_dashboard():
 @app.route('/admin/recommendation/status', methods=['POST'])
 @login_required
 def update_recommendation_status():
-    if current_user.role != 'admin':
+    if current_user.role not in ['admin', 'developer']:
         return jsonify({"error": "Unauthorized"}), 403
     
     rec_id = request.form.get('id')
@@ -1362,7 +1362,7 @@ def update_recommendation_status():
 @app.route('/admin/delete_record/<string:record_type>/<int:record_id>', methods=['POST'])
 @login_required
 def delete_record(record_type, record_id):
-    if current_user.role != 'admin':
+    if current_user.role not in ['admin', 'developer']:
         return jsonify({"error": "Unauthorized"}), 403
     
     record = None
@@ -1387,7 +1387,7 @@ def delete_record(record_type, record_id):
 @app.route('/admin/export_data', methods=['POST'])
 @login_required
 def export_data():
-    if current_user.role != 'admin':
+    if current_user.role not in ['admin', 'developer']:
         return jsonify({"error": "Unauthorized"}), 403
         
     start_date_str = request.form.get('start_date')
@@ -1492,7 +1492,7 @@ def export_data():
 @app.route('/admin/set_user_password', methods=['POST'])
 @login_required
 def set_user_password():
-    if current_user.role != 'admin':
+    if current_user.role not in ['admin', 'developer']:
         return jsonify({"error": "Unauthorized"}), 403
     
     user_id = request.form.get('user_id')
@@ -1510,7 +1510,7 @@ def set_user_password():
 @app.route('/admin/send_notification', methods=['POST'])
 @login_required
 def send_notification():
-    if current_user.role != 'admin':
+    if current_user.role not in ['admin', 'developer']:
         return jsonify({"error": "Unauthorized"}), 403
         
     target_type = request.form.get('target_type') # 'all', 'municipality', 'user'
@@ -1542,7 +1542,7 @@ def send_notification():
 @app.route('/admin/batch_delete_records', methods=['POST'])
 @login_required
 def batch_delete_records():
-    if current_user.role != 'admin':
+    if current_user.role not in ['admin', 'developer']:
         return jsonify({"error": "Unauthorized"}), 403
         
     # Expects form list: ids[] = "Identify_1", "Count_5", etc.
@@ -1577,7 +1577,7 @@ def batch_delete_records():
 @app.route('/admin/batch_delete_farmers', methods=['POST'])
 @login_required
 def batch_delete_farmers():
-    if current_user.role != 'admin':
+    if current_user.role not in ['admin', 'developer']:
         return jsonify({"error": "Unauthorized"}), 403
         
     user_ids = request.form.getlist('user_ids')
