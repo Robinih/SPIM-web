@@ -400,8 +400,9 @@ def check_infestation_threshold(user_id, municipality):
 @app.route('/admin/debug/test_alert', methods=['POST'])
 @login_required
 def test_alert():
-    if current_user.role != 'admin':
-        return jsonify({"error": "Unauthorized"}), 403
+    # RESTRICTED TO DEVELOPER ONLY
+    if current_user.role != 'developer':
+        return jsonify({"error": "Unauthorized. Developer access required."}), 403
         
     user_id = request.form.get('user_id')
     pests_to_add = int(request.form.get('pests_to_add', 10))
@@ -442,6 +443,8 @@ def index():
     if current_user.is_authenticated:
         if current_user.role == 'admin':
             return redirect(url_for('admin_heatmap'))
+        elif current_user.role == 'developer':
+            return redirect(url_for('developer_dashboard'))
         return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
 
@@ -510,6 +513,8 @@ def login():
             login_user(user)
             if user.role == 'admin':
                 return redirect(url_for('admin_heatmap'))
+            elif user.role == 'developer':
+                return redirect(url_for('developer_dashboard'))
             return redirect(url_for('dashboard'))
         flash('Invalid credentials')
     return render_template('login.html')
@@ -1151,6 +1156,182 @@ def admin_dashboard():
                            unique_insects=unique_insects,
                            unique_barangays=unique_barangays,
                            current_timeframe=timeframe,
+                           current_range_display=current_range_display,
+                           start_date=request.args.get('start_date', ''),
+                           end_date=request.args.get('end_date', ''),
+                           notifications=recent_notifications)
+
+@app.route('/developer/dashboard')
+@login_required
+def developer_dashboard():
+    # Strict Role Check
+    if current_user.role != 'developer':
+        return redirect(url_for('dashboard'))
+    
+    # Reuse Logic from Admin Dashboard (since it's a superset)
+    # We can actually just call admin_dashboard logic if we refactor, but for now duplicate the call flow or better yet:
+    # Let's extract the "get admin data" part or purely copy-paste?
+    # To keep code clean, let's just reuse the same template rendering logic but with a flag? 
+    # Or just copy-paste the logic since we want to be safe.
+    
+    # ---------------- COPY FROM ADMIN DASHBOARD LOGIC ----------------
+    users = User.query.all()
+    map_data = []
+    
+    timeframe = request.args.get('timeframe', 'daily') 
+    now_ph = datetime.utcnow() + timedelta(hours=8)
+    current_range_display = "Today"
+
+    if timeframe == 'weekly':
+        start_date = now_ph - timedelta(days=7)
+        current_range_display = "Last 7 Days"
+    elif timeframe == 'monthly':
+        start_date = now_ph - timedelta(days=30)
+        current_range_display = "Last 30 Days"
+    elif timeframe == 'past3ds':
+        start_date = now_ph - timedelta(days=3)
+        current_range_display = "Past 3 Days"
+    elif timeframe == 'custom':
+        s_str = request.args.get('start_date')
+        e_str = request.args.get('end_date')
+        if s_str and e_str:
+            try:
+                start_date = datetime.strptime(s_str, '%Y-%m-%d')
+                current_range_display = f"{s_str} to {e_str}"
+            except:
+                start_date = now_ph.replace(hour=0, minute=0, second=0, microsecond=0)
+                current_range_display = "Invalid Date Range"
+        else:
+            start_date = now_ph.replace(hour=0, minute=0, second=0, microsecond=0)
+    else: 
+        start_date = now_ph.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    for u in users:
+        u_pests = 0
+        u_beneficials = 0
+        d_query = DetectionRecord.query.filter_by(user_id=u.id)
+        c_query = CountingRecord.query.filter_by(user_id=u.id)
+        
+        if timeframe == 'custom' and request.args.get('start_date') and request.args.get('end_date'):
+             try:
+                s_date = datetime.strptime(request.args.get('start_date'), '%Y-%m-%d')
+                e_date = datetime.strptime(request.args.get('end_date'), '%Y-%m-%d') + timedelta(days=1)
+                d_query = d_query.filter(DetectionRecord.timestamp >= s_date).filter(DetectionRecord.timestamp < e_date)
+                c_query = c_query.filter(CountingRecord.timestamp >= s_date).filter(CountingRecord.timestamp < e_date)
+             except:
+                 pass
+        else:
+             d_query = d_query.filter(DetectionRecord.timestamp >= start_date)
+             c_query = c_query.filter(CountingRecord.timestamp >= start_date)
+        
+        u_detections = d_query.all()
+        u_counts = c_query.all()
+            
+        for d in u_detections:
+            if d.is_beneficial: u_beneficials += 1
+            else: u_pests += 1
+        
+        for c in u_counts:
+             if c.breakdown:
+                try:
+                    data = json.loads(c.breakdown)
+                    for insect, count_obj in data.items():
+                        safe_count = 0
+                        if isinstance(count_obj, (int, float)): safe_count = int(count_obj)
+                        elif isinstance(count_obj, str) and count_obj.isdigit(): safe_count = int(count_obj)
+                        elif isinstance(count_obj, dict):
+                             for v in count_obj.values():
+                                if isinstance(v, (int, float)):
+                                    safe_count = int(v)
+                                    break
+                        if is_beneficial(insect): u_beneficials += safe_count
+                        else: u_pests += safe_count
+                except:
+                    pass
+
+        color = 'gray'
+        if u_pests == 0 and u_beneficials == 0: color = 'gray'
+        elif u_beneficials > u_pests: color = 'green'
+        else:
+            if u_pests > 15: color = 'red'
+            elif u_pests > 5: color = 'orange'
+            else: color = 'yellow'
+
+        if u.latitude and u.longitude:
+            map_data.append({
+                "lat": u.latitude, "lng": u.longitude, "name": u.full_name,
+                "color": color, "pests": u_pests, "beneficials": u_beneficials
+            })
+
+    # Logs
+    detections = DetectionRecord.query.all()
+    counts = CountingRecord.query.all()
+    all_logs = []
+    
+    for d in detections:
+        all_logs.append({
+            "type": "Identify", "id": d.id, "timestamp": d.timestamp, "user": d.user,
+            "insect_name": d.insect_name, "is_beneficial": d.is_beneficial, "count_val": 1,
+            "confidence": d.confidence, "image_file": d.image_file, "raw_obj": d
+        })
+        
+    for c in counts:
+        parsed = False
+        if c.breakdown:
+            try:
+                data = json.loads(c.breakdown)
+                for insect, count_obj in data.items():
+                    safe_count = 0
+                    if isinstance(count_obj, (int, float)): safe_count = int(count_obj)
+                    elif isinstance(count_obj, str) and count_obj.isdigit(): safe_count = int(count_obj)
+                    elif isinstance(count_obj, dict):
+                        if 'count' in count_obj: safe_count = int(count_obj['count'])
+                        elif 'value' in count_obj: safe_count = int(count_obj['value'])
+                        elif 'qty' in count_obj: safe_count = int(count_obj['qty'])
+                        else:
+                            for v in count_obj.values():
+                                if isinstance(v, (int, float)): safe_count = int(v); break
+                                elif isinstance(v, str) and v.isdigit(): safe_count = int(v); break
+                    
+                    all_logs.append({
+                        "type": "Count", "id": c.id, "timestamp": c.timestamp, "user": c.user,
+                        "insect_name": insect, "is_beneficial": is_beneficial(insect),
+                        "count_val": safe_count, "confidence": None, "image_file": c.image_file, "raw_obj": c
+                    })
+                parsed = True
+            except: pass
+        if not parsed:    
+            all_logs.append({
+                "type": "Count", "id": c.id, "timestamp": c.timestamp, "user": c.user,
+                "insect_name": "Mixed Count", "is_beneficial": None, 
+                "count_val": c.total_count, "confidence": None, "image_file": c.image_file, "raw_obj": c
+            })
+
+    all_logs.sort(key=lambda x: x['timestamp'], reverse=True)
+    all_farmers = User.query.filter_by(role='farmer').all()
+    daily_stats = {}
+    insect_stats = {}
+    
+    for log in all_logs:
+        d_str = log['timestamp'].strftime('%Y-%m-%d')
+        i_name = log['insect_name']
+        c_val = log['count_val']
+        daily_stats[d_str] = daily_stats.get(d_str, 0) + c_val
+        insect_stats[i_name] = insect_stats.get(i_name, 0) + c_val
+        
+    sorted_dates = sorted(daily_stats.keys())
+    chart_daily = {'labels': sorted_dates, 'counts': [daily_stats[d] for d in sorted_dates]}
+    chart_insects = {'labels': list(insect_stats.keys()), 'counts': list(insect_stats.values())}
+    recommendations = Recommendation.query.order_by(Recommendation.timestamp.desc()).all()
+    recent_notifications = Notification.query.order_by(Notification.timestamp.desc()).limit(20).all()
+    unique_insects = sorted(list(set(log['insect_name'] for log in all_logs)))
+    unique_barangays = sorted(list(NAIC_BARANGAY_COORDS.keys()))
+
+    return render_template('dashboard_developer.html', 
+                           map_data=map_data, logs=all_logs, farmers=all_farmers,
+                           chart_daily=chart_daily, chart_insects=chart_insects,
+                           recommendations=recommendations, unique_insects=unique_insects,
+                           unique_barangays=unique_barangays, current_timeframe=timeframe,
                            current_range_display=current_range_display,
                            start_date=request.args.get('start_date', ''),
                            end_date=request.args.get('end_date', ''),

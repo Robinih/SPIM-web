@@ -3,7 +3,7 @@
 {% block content %}
 <div class="row mb-4">
     <div class="col-12">
-        <h2 class="mb-3">Admin Console</h2>
+        <h2 class="mb-3">Developer Console</h2>
     </div>
 </div>
 
@@ -433,130 +433,155 @@
                     </div>
                 </div>
 
-            </div>
-        </div>
-
-        <div class="col-md-7">
-            <div class="card shadow-sm">
-                <div class="card-header">
-                    <h5 class="mb-0">Recent Alerts</h5>
-                </div>
-                <div class="card-body">
-                    {% if notifications %}
-                    <div class="list-group list-group-flush" style="max-height: 400px; overflow-y: auto;">
-                        {% for n in notifications %}
-                        <div class="list-group-item px-0">
-                            <div class="d-flex w-100 justify-content-between">
-                                <span
-                                    class="badge bg-{{ 'danger' if n.level == 'High' else ('warning text-dark' if n.level == 'Medium' else 'info') }} mb-1">
-                                    {{ n.level }} Priority
-                                </span>
-                                <small class="text-muted">{{ n.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+                <div class="card shadow-sm mt-4">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">Test Alert System</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="small text-muted mb-2">Simulate a high pest count to trigger automatic alerts.</p>
+                        <form action="{{ url_for('test_alert') }}" method="POST">
+                            <div class="mb-3">
+                                <label class="form-label">Select Farmer</label>
+                                <select class="form-select" name="user_id">
+                                    {% for farmer in farmers %}
+                                    <option value="{{ farmer.id }}">{{ farmer.full_name }}</option>
+                                    {% endfor %}
+                                </select>
                             </div>
-                            <p class="mb-1 small fw-bold">{{ n.message }}</p>
-                            <small class="text-muted">To: {{ n.user.full_name }}</small>
-                        </div>
-                        {% endfor %}
+                            <div class="mb-3">
+                                <label class="form-label">Pests to Simulate (Today)</label>
+                                <input type="number" class="form-control" name="pests_to_add" value="20" min="1">
+                                <div class="form-text">
+                                    Thresholds: >5 (Medium), >15 (High)
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-warning w-100">Simulate Infestation</button>
+                        </form>
                     </div>
-                    {% else %}
-                    <div class="alert alert-info">
-                        No recent alerts found.
-                    </div>
-                    {% endif %}
                 </div>
             </div>
-        </div>
-    </div>
-</div>
 
-<!-- TAB 5: Field Reports -->
-<div class="tab-pane fade" id="reports" role="tabpanel">
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="card-title mb-0">Incoming Field Reports</h5>
-            </div>
-            <div class="row g-2 mb-3">
-                <div class="col-md-3">
-                    <input type="text" id="reportsSearch" class="form-control form-control-sm"
-                        placeholder="Search reports..."
-                        onkeyup="filterTable('reportsTable', 'reportsSearch', 'reportsFilter', 5)">
-                </div>
-                <div class="col-md-3">
-                    <select id="reportsFilter" class="form-select form-select-sm"
-                        onchange="filterTable('reportsTable', 'reportsSearch', 'reportsFilter', 5)">
-                        <option value="all">All Status</option>
-                        <option value="pending">Pending</option>
-                        <option value="read">Read</option>
-                        <option value="resolved">Resolved</option>
-                    </select>
-                </div>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-hover align-middle" id="reportsTable">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Date</th>
-                            <th>Farmer</th>
-                            <th>Location</th>
-                            <th>Description</th>
-                            <th>Photo</th>
-                            <th>Status</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for rec in recommendations %}
-                        <tr>
-                            <td>{{ rec.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
-                            <td>{{ rec.user.full_name }}</td>
-                            <td>{{ rec.user.street_barangay }}, {{ rec.user.municipality }}</td>
-                            <td>
-                                <small>{{ rec.description|truncate(50) }}</small>
-                            </td>
-                            <td>
-                                <img src="{{ url_for('static', filename='uploads/recommendations/' + rec.image_path) }}"
-                                    class="img-thumbnail"
-                                    style="width: 50px; height: 50px; object-fit: cover; cursor: pointer;"
-                                    data-id="{{ rec.id }}" data-user="{{ rec.user.full_name }}"
-                                    data-status="{{ rec.status }}" data-desc="{{ rec.description }}"
-                                    data-image="{{ url_for('static', filename='uploads/recommendations/' + rec.image_path) }}"
-                                    data-location="{{ rec.user.street_barangay }}"
-                                    onclick="openReportModalFromData(this)">
-                            </td>
-                            <td>
-                                {% if rec.status == 'Pending' %}
-                                <span class="badge bg-warning text-dark">Pending</span>
-                                {% elif rec.status == 'Read' %}
-                                <span class="badge bg-info">Read</span>
-                                {% elif rec.status == 'Resolved' %}
-                                <span class="badge bg-success">Resolved</span>
-                                {% else %}
-                                <span class="badge bg-secondary">{{ rec.status }}</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <button class="btn btn-sm btn-primary" data-id="{{ rec.id }}"
-                                    data-user="{{ rec.user.full_name }}" data-status="{{ rec.status }}"
-                                    data-desc="{{ rec.description }}"
-                                    data-image="{{ url_for('static', filename='uploads/recommendations/' + rec.image_path) }}"
-                                    data-location="{{ rec.user.street_barangay }}"
-                                    onclick="openReportModalFromData(this)">
-                                    View
-                                </button>
-                            </td>
-                        </tr>
+            <div class="col-md-7">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h5 class="mb-0">Recent Alerts</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if notifications %}
+                        <div class="list-group list-group-flush" style="max-height: 400px; overflow-y: auto;">
+                            {% for n in notifications %}
+                            <div class="list-group-item px-0">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <span
+                                        class="badge bg-{{ 'danger' if n.level == 'High' else ('warning text-dark' if n.level == 'Medium' else 'info') }} mb-1">
+                                        {{ n.level }} Priority
+                                    </span>
+                                    <small class="text-muted">{{ n.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+                                </div>
+                                <p class="mb-1 small fw-bold">{{ n.message }}</p>
+                                <small class="text-muted">To: {{ n.user.full_name }}</small>
+                            </div>
+                            {% endfor %}
+                        </div>
                         {% else %}
-                        <tr>
-                            <td colspan="7" class="text-center text-muted">No reports found.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                        <div class="alert alert-info">
+                            No recent alerts found.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-</div>
+
+    <!-- TAB 5: Field Reports -->
+    <div class="tab-pane fade" id="reports" role="tabpanel">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="card-title mb-0">Incoming Field Reports</h5>
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-md-3">
+                        <input type="text" id="reportsSearch" class="form-control form-control-sm"
+                            placeholder="Search reports..."
+                            onkeyup="filterTable('reportsTable', 'reportsSearch', 'reportsFilter', 5)">
+                    </div>
+                    <div class="col-md-3">
+                        <select id="reportsFilter" class="form-select form-select-sm"
+                            onchange="filterTable('reportsTable', 'reportsSearch', 'reportsFilter', 5)">
+                            <option value="all">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="read">Read</option>
+                            <option value="resolved">Resolved</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle" id="reportsTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Farmer</th>
+                                <th>Location</th>
+                                <th>Description</th>
+                                <th>Photo</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rec in recommendations %}
+                            <tr>
+                                <td>{{ rec.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>{{ rec.user.full_name }}</td>
+                                <td>{{ rec.user.street_barangay }}, {{ rec.user.municipality }}</td>
+                                <td>
+                                    <small>{{ rec.description|truncate(50) }}</small>
+                                </td>
+                                <td>
+                                    <img src="{{ url_for('static', filename='uploads/recommendations/' + rec.image_path) }}"
+                                        class="img-thumbnail"
+                                        style="width: 50px; height: 50px; object-fit: cover; cursor: pointer;"
+                                        data-id="{{ rec.id }}" data-user="{{ rec.user.full_name }}"
+                                        data-status="{{ rec.status }}" data-desc="{{ rec.description }}"
+                                        data-image="{{ url_for('static', filename='uploads/recommendations/' + rec.image_path) }}"
+                                        data-location="{{ rec.user.street_barangay }}"
+                                        onclick="openReportModalFromData(this)">
+                                </td>
+                                <td>
+                                    {% if rec.status == 'Pending' %}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                    {% elif rec.status == 'Read' %}
+                                    <span class="badge bg-info">Read</span>
+                                    {% elif rec.status == 'Resolved' %}
+                                    <span class="badge bg-success">Resolved</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ rec.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" data-id="{{ rec.id }}"
+                                        data-user="{{ rec.user.full_name }}" data-status="{{ rec.status }}"
+                                        data-desc="{{ rec.description }}"
+                                        data-image="{{ url_for('static', filename='uploads/recommendations/' + rec.image_path) }}"
+                                        data-location="{{ rec.user.street_barangay }}"
+                                        onclick="openReportModalFromData(this)">
+                                        View
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted">No reports found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </div> <!-- End tab-content -->
 
 <!-- Report Details Modal -->

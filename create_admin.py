@@ -2,20 +2,20 @@ import sys
 from app import app, db, User
 from werkzeug.security import generate_password_hash
 
-def create_admin(username, password, full_name="Admin User"):
+def create_admin(username, password, full_name="Admin User", role="admin"):
     with app.app_context():
         # Check if exists
         user = User.query.filter_by(username=username).first()
         if user:
             print(f"User '{username}' already exists.")
-            if user.role != 'admin':
-                confirm = input(f"User exists as '{user.role}'. Promote to admin? (y/n): ")
+            if user.role != role:
+                confirm = input(f"User exists as '{user.role}'. Promote to {role}? (y/n): ")
                 if confirm.lower() == 'y':
-                    user.role = 'admin'
+                    user.role = role
                     db.session.commit()
-                    print(f"User '{username}' promoted to admin.")
+                    print(f"User '{username}' promoted to {role}.")
             else:
-                print("User is already an admin.")
+                print(f"User is already a {role}.")
             return
 
         # Create new
@@ -26,18 +26,22 @@ def create_admin(username, password, full_name="Admin User"):
             password_hash=hashed_pw,
             municipality='HEADQUARTERS',
             street_barangay='N/A',
-            role='admin'
+            role=role
         )
         db.session.add(new_admin)
         db.session.commit()
-        print(f"Admin user '{username}' created successfully.")
+        print(f"{role.capitalize()} user '{username}' created successfully.")
 
 if __name__ == "__main__":
-    if len(sys.argv) == 3:
-        create_admin(sys.argv[1], sys.argv[2])
+    if len(sys.argv) >= 3:
+        role = "admin"
+        if len(sys.argv) == 4:
+            role = sys.argv[3]
+        create_admin(sys.argv[1], sys.argv[2], role=role)
     else:
-        print("Usage: python create_admin.py <username> <password>")
+        print("Usage: python create_admin.py <username> <password> [role]")
         print("Interactive Mode:")
         u = input("Username: ")
         p = input("Password: ")
-        create_admin(u, p)
+        r = input("Role (admin/developer) [default: admin]: ") or "admin"
+        create_admin(u, p, role=r)
