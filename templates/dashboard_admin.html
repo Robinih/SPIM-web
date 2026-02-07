@@ -392,15 +392,17 @@
                                 <select class="form-select" name="target_type" id="target_type"
                                     onchange="toggleTargetInput()">
                                     <option value="all">All Farmers</option>
-                                    <option value="municipality">Specific Municipality</option>
+                                    <option value="barangay">Specific Barangay</option>
                                     <option value="user">Specific Farmer</option>
                                 </select>
                             </div>
 
                             <div class="mb-3 d-none" id="div_municipality">
-                                <label class="form-label">Select Municipality</label>
-                                <select class="form-select" name="target_value" id="select_municipality">
-                                    <option value="Naic">Naic</option>
+                                <label class="form-label">Select Barangay</label>
+                                <select class="form-select" name="target_value_ignored" id="select_municipality">
+                                    {% for brgy in unique_barangays %}
+                                    <option value="{{ brgy }}">{{ brgy }}</option>
+                                    {% endfor %}
                                 </select>
                             </div>
 
@@ -437,26 +439,46 @@
 
             <div class="col-md-6">
                 <div class="card shadow-sm">
-                    <div class="card-header">
+                    <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">Recent Alerts</h5>
+                        <button type="button" class="btn btn-sm btn-outline-danger"
+                            onclick="submitBatchDeleteNotifications()">
+                            <i class="bi bi-trash"></i> Clear Selected
+                        </button>
                     </div>
                     <div class="card-body">
                         {% if notifications %}
-                        <div class="list-group list-group-flush" style="max-height: 400px; overflow-y: auto;">
-                            {% for n in notifications %}
-                            <div class="list-group-item px-0">
-                                <div class="d-flex w-100 justify-content-between">
-                                    <span
-                                        class="badge bg-{{ 'danger' if n.level == 'High' else ('warning text-dark' if n.level == 'Medium' else 'info') }} mb-1">
-                                        {{ n.level }} Priority
-                                    </span>
-                                    <small class="text-muted">{{ n.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+                        <form id="batchDeleteNotificationsForm" action="{{ url_for('batch_delete_notifications') }}"
+                            method="POST" onsubmit="return confirm('Delete selected notifications?');">
+                            <div class="list-group list-group-flush" style="max-height: 400px; overflow-y: auto;">
+                                <div class="mb-2 ms-1">
+                                    <input type="checkbox" id="selectAllNotifications"
+                                        onclick="toggleAll('selectAllNotifications', 'notification_ids')">
+                                    <label for="selectAllNotifications" class="small text-muted ms-1">Select All</label>
                                 </div>
-                                <p class="mb-1 small fw-bold">{{ n.message }}</p>
-                                <small class="text-muted">To: {{ n.user.full_name }}</small>
+                                {% for n in notifications %}
+                                <div class="list-group-item px-0">
+                                    <div class="d-flex w-100 justify-content-between align-items-start">
+                                        <div class="me-2">
+                                            <input type="checkbox" name="notification_ids" value="{{ n.id }}">
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <span
+                                                    class="badge bg-{{ 'danger' if n.level == 'High' else ('warning text-dark' if n.level == 'Medium' else 'info') }} mb-1">
+                                                    {{ n.level }} Priority
+                                                </span>
+                                                <small class="text-muted">{{ n.timestamp.strftime('%Y-%m-%d %H:%M')
+                                                    }}</small>
+                                            </div>
+                                            <p class="mb-1 small fw-bold">{{ n.message }}</p>
+                                            <small class="text-muted">To: {{ n.user.full_name }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
                             </div>
-                            {% endfor %}
-                        </div>
+                        </form>
                         {% else %}
                         <div class="alert alert-info">
                             No recent alerts found.
@@ -761,6 +783,19 @@
         document.getElementById('batchDeleteFarmersForm').submit();
     }
 
+    function submitBatchDeleteNotifications() {
+        var checkboxes = document.getElementsByName('notification_ids');
+        var checked = false;
+        for (var i = 0; i < checkboxes.length; i++) {
+            if (checkboxes[i].checked) checked = true;
+        }
+        if (!checked) {
+            alert('Please select notifications to delete.');
+            return;
+        }
+        document.getElementById('batchDeleteNotificationsForm').submit();
+    }
+
     function openSetPasswordModal(userId, username) {
         var modalEl = document.getElementById('adminSetPasswordModal');
         if (!modalEl) return;
@@ -802,7 +837,7 @@
         document.getElementById('select_municipality').name = 'ignore';
         document.getElementById('select_user').name = 'ignore';
 
-        if (type === 'municipality') {
+        if (type === 'barangay') {
             document.getElementById('div_municipality').classList.remove('d-none');
             document.getElementById('select_municipality').name = 'target_value';
         } else if (type === 'user') {

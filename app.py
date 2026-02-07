@@ -1524,8 +1524,8 @@ def send_notification():
     
     if target_type == 'all':
         recipients = User.query.filter_by(role='farmer').all()
-    elif target_type == 'municipality':
-        recipients = User.query.filter_by(municipality=target_value, role='farmer').all()
+    elif target_type == 'barangay':
+        recipients = User.query.filter_by(street_barangay=target_value, role='farmer').all()
     elif target_type == 'user':
         user = User.query.get(target_value)
         if user:
@@ -1539,6 +1539,27 @@ def send_notification():
         
     db.session.commit()
     flash(f'Alert sent to {count} farmers.', 'success')
+    return redirect(url_for('developer_dashboard', _anchor='alerts') if current_user.role == 'developer' else url_for('admin_dashboard', _anchor='alerts'))
+
+@app.route('/admin/batch_delete_notifications', methods=['POST'])
+@login_required
+def batch_delete_notifications():
+    # Allow both admins and developers
+    if current_user.role not in ['admin', 'developer']:
+        return jsonify({"error": "Unauthorized"}), 403
+        
+    notification_ids = request.form.getlist('notification_ids')
+    
+    count = 0
+    for nid in notification_ids:
+        note = Notification.query.get(nid)
+        # Verify ownership (admin/dev can delete their own notifications)
+        if note and note.user_id == current_user.id:
+            db.session.delete(note)
+            count += 1
+            
+    db.session.commit()
+    flash(f'Deleted {count} notifications.', 'success')
     return redirect(url_for('developer_dashboard', _anchor='alerts') if current_user.role == 'developer' else url_for('admin_dashboard', _anchor='alerts'))
 
 @app.route('/admin/batch_delete_records', methods=['POST'])
