@@ -1,4 +1,4 @@
-from app import app, db, User, DetectionRecord, CountingRecord, NAIC_BARANGAY_COORDS
+from app import app, db, User, DetectionRecord, CountingRecord, NAIC_BARANGAY_COORDS, check_infestation_threshold
 import random
 from werkzeug.security import generate_password_hash
 from datetime import datetime, timedelta
@@ -91,9 +91,24 @@ def seed_data():
                 )
                 db.session.add(c_record)
             
+            # Commit all records for this user
+            db.session.commit()
+            
+            # Trigger alert check for this user (only for recent data)
+            # Only check for data from today to avoid spam from old dummy data
+            now_ph = ph_time_now()
+            today_start = now_ph.replace(hour=0, minute=0, second=0, microsecond=0)
+            
+            # Count pests today only
+            pests_today = DetectionRecord.query.filter_by(user_id=user.id, is_beneficial=False)\
+                .filter(DetectionRecord.timestamp >= today_start).count()
+            
+            # If there's significant pest activity today, trigger the check
+            if pests_today > 0:
+                check_infestation_threshold(user.id, user.municipality, is_test=False)
+            
             print(f"Created {user.full_name} with random data.")
             
-        db.session.commit()
         print("Seeding complete!")
 
 if __name__ == "__main__":
