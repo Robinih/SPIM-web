@@ -35,13 +35,19 @@ def create_admin(username, password, full_name="Admin User", role="admin"):
 if __name__ == "__main__":
     if len(sys.argv) >= 3:
         role = "admin"
-        if len(sys.argv) == 4:
+        full_name = "Admin User"
+        if len(sys.argv) >= 4:
             role = sys.argv[3]
-        create_admin(sys.argv[1], sys.argv[2], role=role)
+            if role == 'developer': full_name = "Developer"
+        if len(sys.argv) >= 5:
+            full_name = sys.argv[4]
+            
+        create_admin(sys.argv[1], sys.argv[2], full_name, role)
     else:
-        print("Usage: python create_admin.py <username> <password> [role]")
+        print("Usage: python create_admin.py <username> <password> [role] [full_name]")
         print("Interactive Mode:")
         u = input("Username: ")
         p = input("Password: ")
         r = input("Role (admin/developer) [default: admin]: ") or "admin"
-        create_admin(u, p, role=r)
+        fn = input("Full Name [default: Admin User]: ") or "Admin User"
+        create_admin(u, p, fn, r)
