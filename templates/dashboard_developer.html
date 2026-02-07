@@ -665,6 +665,41 @@
 
 {% block scripts %}
 <script>
+    // Filter function for tables
+    function filterTable(tableId, searchInputId, filterSelectId, filterColIndex) {
+        var input = document.getElementById(searchInputId);
+        var filter = input.value.toUpperCase();
+        var select = document.getElementById(filterSelectId);
+        var selectFilter = select ? select.value.toUpperCase() : "ALL";
+        var table = document.getElementById(tableId);
+        var tr = table.getElementsByTagName("tr");
+
+        for (var i = 1; i < tr.length; i++) {
+            var showRow = true;
+
+            // 1. Text Search (Search all text in row)
+            if (filter) {
+                if (tr[i].innerText.toUpperCase().indexOf(filter) === -1) {
+                    showRow = false;
+                }
+            }
+
+            // 2. Dropdown Filter (Specific Column)
+            if (showRow && selectFilter !== "ALL" && filterColIndex >= 0) {
+                var td = tr[i].getElementsByTagName("td")[filterColIndex];
+                if (td) {
+                    var txtValue = td.textContent || td.innerText;
+                    // Check if part of string (e.g. status)
+                    if (txtValue.toUpperCase().indexOf(selectFilter) === -1) {
+                        showRow = false;
+                    }
+                }
+            }
+
+            tr[i].style.display = showRow ? "" : "none";
+        }
+    }
+
     function deleteSingleRecord(type, id) {
         if (!confirm('Delete this record?')) return;
 
