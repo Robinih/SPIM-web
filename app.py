@@ -1607,6 +1607,28 @@ def admin_heatmap():
 
 from datetime import datetime
 
+
+@app.route('/api/notification/read/<int:notification_id>', methods=['POST'])
+@login_required
+def mark_notification_read(notification_id):
+    notification = Notification.query.get_or_404(notification_id)
+    if notification.user_id != current_user.id:
+        return jsonify({"error": "Unauthorized"}), 403
+    
+    notification.is_read = True
+    db.session.commit()
+    return jsonify({"message": "Marked as read"}), 200
+
+@app.route('/api/notifications/read/all', methods=['POST'])
+@login_required
+def mark_all_notifications_read():
+    notifications = Notification.query.filter_by(user_id=current_user.id, is_read=False).all()
+    for n in notifications:
+        n.is_read = True
+    
+    db.session.commit()
+    return jsonify({"message": f"Marked {len(notifications)} notifications as read"}), 200
+
 # Initialize DB
 with app.app_context():
     db.create_all()
