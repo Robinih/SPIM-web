@@ -417,7 +417,7 @@ def test_alert():
         return redirect(url_for('admin_dashboard', _anchor='alerts'))
         
     # Create Dummy Records to Trigger Threshold
-    # We add them as 'Test Pest'
+    temp_records = []
     for i in range(pests_to_add):
         rec = DetectionRecord(
             user_id=target_user.id,
@@ -427,14 +427,20 @@ def test_alert():
             is_beneficial=False
         )
         db.session.add(rec)
+        temp_records.append(rec)
     
     db.session.commit()
     
-    # Trigger Check
+    # Trigger Check (Alert Logic runs against DB)
     check_infestation_threshold(target_user.id, target_user.municipality)
     
-    flash(f"Simulated adding {pests_to_add} pests for {target_user.full_name}. Check 'Recent Alerts' below.", "success")
-    return redirect(url_for('admin_dashboard', _anchor='alerts'))
+    # Cleanup: Remove the temporary records so they don't clutter logs
+    for rec in temp_records:
+        db.session.delete(rec)
+    db.session.commit()
+    
+    flash(f"Simulated adding {pests_to_add} pests for {target_user.full_name} to test alerts. Records were temporary and have been removed.", "success")
+    return redirect(url_for('developer_dashboard', _anchor='alerts'))
 
 # --- Web Routes ---
 
