@@ -1357,6 +1357,8 @@ def update_recommendation_status():
     db.session.commit()
     
     flash(f"Report marked as {new_status}.", "success")
+    if current_user.role == 'developer':
+        return redirect(url_for('developer_dashboard', _anchor='reports'))
     return redirect(url_for('admin_dashboard', _anchor='reports'))
 
 @app.route('/admin/delete_record/<string:record_type>/<int:record_id>', methods=['POST'])
@@ -1382,7 +1384,7 @@ def delete_record(record_type, record_id):
         db.session.commit()
         flash('Record deleted successfully.', 'success')
     
-    return redirect(url_for('admin_dashboard', _anchor='logs'))
+    return redirect(url_for('developer_dashboard', _anchor='logs') if current_user.role == 'developer' else url_for('admin_dashboard', _anchor='logs'))
 
 @app.route('/admin/export_data', methods=['POST'])
 @login_required
@@ -1505,7 +1507,7 @@ def set_user_password():
     db.session.commit()
     
     flash(f'Password for {user.username} updated successfully.', 'success')
-    return redirect(url_for('admin_dashboard', _anchor='farmers'))
+    return redirect(url_for('developer_dashboard', _anchor='farmers') if current_user.role == 'developer' else url_for('admin_dashboard', _anchor='farmers'))
 
 @app.route('/admin/send_notification', methods=['POST'])
 @login_required
@@ -1537,7 +1539,7 @@ def send_notification():
         
     db.session.commit()
     flash(f'Alert sent to {count} farmers.', 'success')
-    return redirect(url_for('admin_dashboard', _anchor='alerts'))
+    return redirect(url_for('developer_dashboard', _anchor='alerts') if current_user.role == 'developer' else url_for('admin_dashboard', _anchor='alerts'))
 
 @app.route('/admin/batch_delete_records', methods=['POST'])
 @login_required
@@ -1572,7 +1574,7 @@ def batch_delete_records():
             
     db.session.commit()
     flash(f'Deleted {deleted_count} records.', 'success')
-    return redirect(url_for('admin_dashboard', _anchor='logs'))
+    return redirect(url_for('developer_dashboard', _anchor='logs') if current_user.role == 'developer' else url_for('admin_dashboard', _anchor='logs'))
 
 @app.route('/admin/batch_delete_farmers', methods=['POST'])
 @login_required
@@ -1596,7 +1598,7 @@ def batch_delete_farmers():
             
     db.session.commit()
     flash(f'Deleted {count} farmers.', 'success')
-    return redirect(url_for('admin_dashboard', _anchor='farmers'))
+    return redirect(url_for('developer_dashboard', _anchor='farmers') if current_user.role == 'developer' else url_for('admin_dashboard', _anchor='farmers'))
 
 @app.route('/admin/heatmap')
 @login_required
