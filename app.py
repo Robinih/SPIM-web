@@ -1595,8 +1595,14 @@ def mark_all_notifications_read():
 @login_required
 def api_notifications():
     # Return unread notifications for polling
-    notifications = Notification.query.filter_by(user_id=current_user.id, is_read=False)\
-        .order_by(Notification.timestamp.desc()).all()
+    # For Admin/Developer: Return ALL recent notifications (global log)
+    # For Farmer: Return unread notifications for THEM
+    
+    if current_user.role in ['admin', 'developer']:
+        notifications = Notification.query.order_by(Notification.timestamp.desc()).limit(20).all()
+    else:
+        notifications = Notification.query.filter_by(user_id=current_user.id, is_read=False)\
+            .order_by(Notification.timestamp.desc()).all()
         
     data = []
     for n in notifications:
