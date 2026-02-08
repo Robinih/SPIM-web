@@ -1664,24 +1664,92 @@ def api_notifications():
     # For Admin/Developer: Return ALL recent notifications (global log)
     # For Farmer: Return unread notifications for THEM
     if user.role in ['admin', 'developer']:
-        notifications = Notification.query.order_by(Notification.timestamp.desc()).limit(20).all()
+        notifications = Notification.query.order_by(Notification.timestamp.desc()).limit(100).all()
+        
+        # Group broadcast alerts (same from_user, message, timestamp within 1 minute)
+        from collections import defaultdict
+        grouped = defaultdict(list)
+        
+        for n in notifications:
+            # Group key: (from_user_id, message, level, timestamp rounded to minute)
+            if n.from_user_id:  # Only group auto-alerts (have from_user_id)
+                key = (
+                    n.from_user_id,
+                    n.message,
+                    n.level,
+                    n.timestamp.replace(second=0, microsecond=0)
+                )
+                grouped[key].append(n)
+            else:
+                # Manual alerts: keep individual
+                grouped[('manual', n.id, None, None)].append(n)
+        
+        # Build response with grouped alerts
+        data = []
+        seen_groups = set()
+        
+        for n in notifications[:20]:  # Still limit to 20 display items
+            if n.from_user_id:
+                key = (
+                    n.from_user_id,
+                    n.message,
+                    n.level,
+                    n.timestamp.replace(second=0, microsecond=0)
+                )
+                
+                if key in seen_groups:
+                    continue  # Skip duplicates
+                seen_groups.add(key)
+                
+                group = grouped[key]
+                from_name = n.from_user.full_name if n.from_user else "System"
+                
+                # Show recipient count
+                recipient_count = len(group)
+                if recipient_count > 1:
+                    to_display = f"All Farmers ({recipient_count} recipients)"
+                else:
+                    to_display = group[0].user.full_name if group[0].user else "Unknown"
+                
+                data.append({
+                    'id': n.id,
+                    'message': n.message,
+                    'level': n.level,
+                    'timestamp': n.timestamp.strftime('%Y-%m-%d %H:%M'),
+                    'is_read': all(x.is_read for x in group),
+                    'from_user': from_name,
+                    'recipient_name': to_display
+                })
+            else:
+                # Manual broadcast alert
+                from_name = "System"
+                to_name = n.user.full_name if n.user else "Unknown"
+                data.append({
+                    'id': n.id,
+                    'message': n.message,
+                    'level': n.level,
+                    'timestamp': n.timestamp.strftime('%Y-%m-%d %H:%M'),
+                    'is_read': n.is_read,
+                    'from_user': from_name,
+                    'recipient_name': to_name
+                })
     else:
+        # Farmer view: show their own unread notifications
         notifications = Notification.query.filter_by(user_id=user_id, is_read=False)\
             .order_by(Notification.timestamp.desc()).all()
         
-    data = []
-    for n in notifications:
-        from_name = n.from_user.full_name if n.from_user else "System"
-        to_name = n.user.full_name if n.user else "Unknown"
-        data.append({
-            'id': n.id,
-            'message': n.message,
-            'level': n.level,
-            'timestamp': n.timestamp.strftime('%Y-%m-%d %H:%M'),
-            'is_read': n.is_read,
-            'from_user': from_name,
-            'recipient_name': to_name  # For web dashboard display
-        })
+        data = []
+        for n in notifications:
+            from_name = n.from_user.full_name if n.from_user else "System"
+            data.append({
+                'id': n.id,
+                'message': n.message,
+                'level': n.level,
+                'timestamp': n.timestamp.strftime('%Y-%m-%d %H:%M'),
+                'is_read': n.is_read,
+                'from_user': from_name
+            })
+    
     return jsonify(data)  # Always returns array, empty [] if no notifications
 
 
