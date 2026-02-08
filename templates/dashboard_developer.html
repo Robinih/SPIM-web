@@ -1052,20 +1052,25 @@
     }
 
     // Polling Notification
-    setInterval(fetchNotifications, 5000);
+    var currentAlertPage = 1;
+    setInterval(function () { fetchNotifications(); }, 5000);
 
-    function fetchNotifications() {
+    function fetchNotifications(page) {
         var checkboxes = document.querySelectorAll('input[name="notification_ids"]:checked');
         if (checkboxes.length > 0) return; // Paused if selecting
+
+        if (typeof page === 'number') {
+            currentAlertPage = page;
+        }
 
         // Add filter parameters
         var dateVal = document.getElementById('alertFilterDate') ? document.getElementById('alertFilterDate').value : '';
         var severityVal = document.getElementById('alertFilterSeverity') ? document.getElementById('alertFilterSeverity').value : '';
 
-        var queryParams = [];
+        var queryParams = ['page=' + currentAlertPage, 'limit=10'];
         if (dateVal) queryParams.push('date=' + encodeURIComponent(dateVal));
         if (severityVal) queryParams.push('severity=' + encodeURIComponent(severityVal));
-        var queryString = queryParams.length > 0 ? '?' + queryParams.join('&') : '';
+        var queryString = '?' + queryParams.join('&');
 
         fetch('/api/notifications' + queryString)
             .then(response => response.json())
@@ -1073,7 +1078,11 @@
                 var container = document.getElementById('recentAlertsCardBody');
                 if (!container) return;
 
-                if (data.length === 0) {
+                // Handle both Legacy (Array) and New (Object with data) formats for safety
+                var notifications = Array.isArray(data) ? data : data.data;
+                var pagination = data.pagination;
+
+                if (!notifications || notifications.length === 0) {
                     container.innerHTML = '<div class="alert alert-info">No recent alerts found.</div>';
                     return;
                 }
@@ -1086,7 +1095,7 @@
                             <label for="selectAllNotifications" class="small text-muted ms-1">Select All</label>
                         </div>`;
 
-                data.forEach(n => {
+                notifications.forEach(n => {
                     var bgClass = n.level === 'High' ? 'danger' : (n.level === 'Medium' ? 'warning text-dark' : 'info');
                     html += `
                     <div class="list-group-item px-0">
@@ -1106,9 +1115,27 @@
                     </div>`;
                 });
 
-                html += `
-                    </div>
-                </form>`;
+                html += `</div>`; // Close list-group
+
+                // Add Pagination Controls
+                if (pagination && pagination.total_pages > 1) {
+                    html += `
+                    <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" 
+                            onclick="fetchNotifications(${pagination.current_page - 1})"
+                            ${pagination.current_page <= 1 ? 'disabled' : ''}>
+                            &laquo; Prev
+                        </button>
+                        <span class="small text-muted">Page ${pagination.current_page} of ${pagination.total_pages}</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" 
+                            onclick="fetchNotifications(${pagination.current_page + 1})"
+                            ${pagination.current_page >= pagination.total_pages ? 'disabled' : ''}>
+                            Next &raquo;
+                        </button>
+                    </div>`;
+                }
+
+                html += `</form>`;
 
                 container.innerHTML = html;
             })

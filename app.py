@@ -1730,15 +1730,16 @@ def api_notifications():
         if severity:
             query = query.filter(Notification.level == severity)
             
-        notifications = query.order_by(Notification.timestamp.desc()).limit(100).all()
+        # Fetch up to 1000 recent notifications for grouping
+        # We don't verify ALL history, just recent history for performance
+        notifications = query.order_by(Notification.timestamp.desc()).limit(1000).all()
         
-        # Group broadcast alerts (same from_user, message, timestamp within 1 minute)
+        # Group broadcast alerts
         from collections import defaultdict
         grouped = defaultdict(list)
         
         for n in notifications:
-            # Group key: (from_user_id, message, level, timestamp rounded to minute)
-            if n.from_user_id:  # Only group auto-alerts (have from_user_id)
+            if n.from_user_id:  
                 key = (
                     n.from_user_id,
                     n.message,
@@ -1747,18 +1748,14 @@ def api_notifications():
                 )
                 grouped[key].append(n)
             else:
-                # Manual alerts: keep individual
                 grouped[('manual', n.id, None, None)].append(n)
         
-        # Build response with grouped alerts
-        data = []
+        # Build list of unique display items (Groups or Manual)
+        grouped_alerts = []
         seen_groups = set()
         
-        # Iterate ALL notifications (up to 100) to find 20 unique groups to display
         for n in notifications:
-            if len(data) >= 20: 
-                break  # Stop once we have 20 display items
-                
+            # Re-iterate to maintain sort order (Desc timestamp)
             if n.from_user_id:
                 key = (
                     n.from_user_id,
@@ -1768,21 +1765,20 @@ def api_notifications():
                 )
                 
                 if key in seen_groups:
-                    continue  # Skip duplicates
+                    continue
                 seen_groups.add(key)
                 
                 group = grouped[key]
                 from_name = n.from_user.full_name if n.from_user else "System"
                 
-                # Show recipient count
                 recipient_count = len(group)
                 if recipient_count > 1:
                     to_display = f"All Farmers ({recipient_count} recipients)"
                 else:
                     to_display = group[0].user.full_name if group[0].user else "Unknown"
                 
-                data.append({
-                    'id': n.id, # Use ID of first item in group
+                grouped_alerts.append({
+                    'id': n.id,
                     'message': n.message,
                     'level': n.level,
                     'timestamp': n.timestamp.strftime('%Y-%m-%d %H:%M'),
@@ -1794,7 +1790,7 @@ def api_notifications():
                 # Manual unique alert
                 from_name = "System"
                 to_name = n.user.full_name if n.user else "Unknown"
-                data.append({
+                grouped_alerts.append({
                     'id': n.id,
                     'message': n.message,
                     'level': n.level,
@@ -1803,8 +1799,45 @@ def api_notifications():
                     'from_user': from_name,
                     'recipient_name': to_name
                 })
+        
+        # Apply Pagination on GROUPED results
+        page = request.args.get('page', 1, type=int)
+        limit = request.args.get('limit', 10, type=int)
+        
+        total_items = len(grouped_alerts)
+        total_pages = (total_items + limit - 1) // limit
+        
+        start = (page - 1) * limit
+        end = start + limit
+        
+        paged_data = grouped_alerts[start:end]
+        
+        return jsonify({
+            'data': paged_data,
+            'pagination': {
+                'current_page': page,
+                'total_pages': total_pages,
+                'total_items': total_items,
+                'limit': limit
+            }
+        })
+
     else:
-        # Farmer view: show their own unread notifications
+        # Farmer view (unchanged structure but wrapped in data/pagination for consistency?
+        # Or keep simple list for existing mobile app compatibility?
+        # Mobile app likely expects list. Admin/Web uses this too.
+        # Check if client requested pagination (if user provided page param, return grouped structure)
+        # But wait, mobile app might break if format changes.
+        # Mobile Code usually: List<Notification> parse(json)
+        # If I return object {data: []}, mobile app LIST parser will fail.
+        # I MUST detect if it's the web dashboard requesting.
+        # Web dashboard sends specific params or cookies?
+        # Or I just check for 'page' param availability?
+        # Safe bet: If 'page' param is present, return Paginated Object.
+        # If not, return List (legacy).
+        
+        is_web_pagination = request.args.get('page') is not None
+        
         notifications = Notification.query.filter_by(user_id=user_id, is_read=False)\
             .order_by(Notification.timestamp.desc()).all()
         
@@ -1819,8 +1852,20 @@ def api_notifications():
                 'is_read': n.is_read,
                 'from_user': from_name
             })
-    
-    return jsonify(data)  # Always returns array, empty [] if no notifications
+            
+        if is_web_pagination:
+             # Paginate farmer data too? Usually not needed but for consistency:
+             return jsonify({
+                'data': data, # Return all for now or paginate if needed
+                'pagination': {
+                    'current_page': 1,
+                    'total_pages': 1,
+                    'total_items': len(data),
+                    'limit': len(data)
+                }
+            })
+        
+        return jsonify(data)
 
 
 @app.route('/test_alert', methods=['POST'])
