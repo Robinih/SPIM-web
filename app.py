@@ -1126,7 +1126,8 @@ def admin_dashboard():
     recommendations = Recommendation.query.order_by(Recommendation.timestamp.desc()).all()
     
     # 6. Fetch Recent Notifications (for Admin Log)
-    recent_notifications = Notification.query.order_by(Notification.timestamp.desc()).limit(20).all()
+    # Handled by JS
+    recent_notifications = []
 
     # 7. Extract Unique Filter Data
     unique_insects = sorted(list(set(log['insect_name'] for log in all_logs)))
@@ -1320,7 +1321,8 @@ def developer_dashboard():
     chart_daily = {'labels': sorted_dates, 'counts': [daily_stats[d] for d in sorted_dates]}
     chart_insects = {'labels': list(insect_stats.keys()), 'counts': list(insect_stats.values())}
     recommendations = Recommendation.query.order_by(Recommendation.timestamp.desc()).all()
-    recent_notifications = Notification.query.order_by(Notification.timestamp.desc()).limit(20).all()
+    # Handled by JS
+    recent_notifications = []
     unique_insects = sorted(list(set(log['insect_name'] for log in all_logs)))
     unique_barangays = sorted(list(NAIC_BARANGAY_COORDS.keys()))
 

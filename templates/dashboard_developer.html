@@ -540,8 +540,9 @@
                             </div>
                         </form>
                         {% else %}
-                        <div class="alert alert-info">
-                            No recent alerts found.
+                        <div class="text-center py-4 text-muted">
+                            <div class="spinner-border spinner-border-sm text-secondary mb-2" role="status"></div>
+                            <p class="mb-0 small">Loading recent alerts...</p>
                         </div>
                         {% endif %}
                     </div>
