@@ -1676,7 +1676,28 @@ def api_notifications():
     # For Admin/Developer: Return ALL recent notifications (global log)
     # For Farmer: Return unread notifications for THEM
     if user.role in ['admin', 'developer']:
-        notifications = Notification.query.order_by(Notification.timestamp.desc()).limit(100).all()
+        query = Notification.query
+
+        # Apply Filters (Date & Severity)
+        date_str = request.args.get('date')
+        severity = request.args.get('severity')
+
+        if date_str:
+            try:
+                # Local time handling might require adjustment but assuming date string matches DB storage
+                # DB stores UTC+8 usually? Or just naive datetime?
+                # Notification.timestamp = db.Column(db.DateTime, index=True, default=ph_time) -> ph_time returns utc+8
+                filter_date = datetime.strptime(date_str, '%Y-%m-%d')
+                # If date_str is '2026-02-08', we want everything from 00:00 to 23:59 on that day
+                next_day = filter_date + timedelta(days=1)
+                query = query.filter(Notification.timestamp >= filter_date, Notification.timestamp < next_day)
+            except ValueError:
+                pass # Ignore invalid date
+        
+        if severity:
+            query = query.filter(Notification.level == severity)
+            
+        notifications = query.order_by(Notification.timestamp.desc()).limit(100).all()
         
         # Group broadcast alerts (same from_user, message, timestamp within 1 minute)
         from collections import defaultdict

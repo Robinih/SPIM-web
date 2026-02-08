@@ -448,8 +448,32 @@
                         <h5 class="mb-0">Recent Alerts</h5>
                         <button type="button" class="btn btn-sm btn-outline-danger"
                             onclick="submitBatchDeleteNotifications()">
-                            <i class="bi bi-trash"></i> Clear Selected
+                            Delete Selected
                         </button>
+                    </div>
+                    <div class="card-body bg-light border-bottom">
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <label class="small text-muted mb-1">Date</label>
+                                <input type="date" id="alertFilterDate" class="form-control form-control-sm"
+                                    onchange="fetchNotifications()">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="small text-muted mb-1">Severity</label>
+                                <select id="alertFilterSeverity" class="form-select form-select-sm"
+                                    onchange="fetchNotifications()">
+                                    <option value="">All Levels</option>
+                                    <option value="High">High (Critical)</option>
+                                    <option value="Medium">Medium (Warning)</option>
+                                    <option value="Low">Low (Advisory)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button class="btn btn-sm btn-outline-secondary w-100" onclick="clearAlertFilters()">
+                                    Reset
+                                </button>
+                            </div>
+                        </div>
                     </div>
                     <div class="card-body" id="recentAlertsCardBody">
                         {% if notifications %}
@@ -991,7 +1015,16 @@
         var checkboxes = document.querySelectorAll('input[name="notification_ids"]:checked');
         if (checkboxes.length > 0) return; // Paused if selecting
 
-        fetch('/api/notifications')
+        // Add filter parameters
+        var dateVal = document.getElementById('alertFilterDate') ? document.getElementById('alertFilterDate').value : '';
+        var severityVal = document.getElementById('alertFilterSeverity') ? document.getElementById('alertFilterSeverity').value : '';
+
+        var queryParams = [];
+        if (dateVal) queryParams.push('date=' + encodeURIComponent(dateVal));
+        if (severityVal) queryParams.push('severity=' + encodeURIComponent(severityVal));
+        var queryString = queryParams.length > 0 ? '?' + queryParams.join('&') : '';
+
+        fetch('/api/notifications' + queryString)
             .then(response => response.json())
             .then(data => {
                 var container = document.getElementById('recentAlertsCardBody');
@@ -1039,6 +1072,11 @@
                 container.innerHTML = html;
             })
             .catch(err => console.error('Error fetching notifications:', err));
+    }
+    function clearAlertFilters() {
+        if (document.getElementById('alertFilterDate')) document.getElementById('alertFilterDate').value = '';
+        if (document.getElementById('alertFilterSeverity')) document.getElementById('alertFilterSeverity').value = '';
+        fetchNotifications();
     }
 </script>
 {% endblock %}
