@@ -302,6 +302,7 @@ def check_infestation_threshold(user_id, municipality, is_test=False):
     # Logic: Align with Heatmap Legend
     # Red (>15 Pests): High Alert
     # Orange (6-15 Pests): Medium Alert
+    # Yellow (1-5 Pests): Low Alert
     # Scope: TODAY'S activity
     
     now_ph = datetime.utcnow() + timedelta(hours=8)
@@ -339,18 +340,19 @@ def check_infestation_threshold(user_id, municipality, is_test=False):
         level = 'High'
     elif pests > 5:
         level = 'Medium'
+    elif pests >= 1:
+        level = 'Low'
     
     if not level:
-        return # No alert needed
+        return # No alert needed (0 pests)
 
     # 3. Rate Limiting & Cooldown
-    # We don't want to spam. 
-    # Logic: 
-    # - Max 3 High alerts per day.
-    # - Max 1 Medium alert per day (to warn), unless it upgrades to High later.
-    # - 1 Hour cooldown between ANY alert for this user to avoid rapid fire during uploads.
+    # - Max 3 High alerts per day
+    # - Max 1 Medium alert per day (unless upgrades to High)
+    # - Max 1 Low alert per day (unless upgrades to Medium/High)
+    # - 1 Hour cooldown between ANY alert for this user
     
-    last_notif = Notification.query.filter_by(user_id=user_id)\
+    last_notif = Notification.query.filter_by(from_user_id=user_id)\
         .filter(Notification.timestamp >= today_start)\
         .order_by(Notification.timestamp.desc()).first()
         
@@ -359,14 +361,15 @@ def check_infestation_threshold(user_id, municipality, is_test=False):
         if (now_ph - last_notif.timestamp).total_seconds() < 3600:
             return # Too soon
             
-        # If we already sent a High alert today, do we send Medium? No.
-        if last_notif.level == 'High' and level == 'Medium':
-            return # Downgrade not urgent
+        # Don't send lower priority alerts if higher already sent
+        priority_order = {'High': 3, 'Medium': 2, 'Low': 1}
+        if priority_order.get(last_notif.level, 0) >= priority_order.get(level, 0):
+            return # Don't downgrade or repeat same level
             
         # If we already sent a High alert, and this is another High alert...
         if last_notif.level == 'High' and level == 'High':
             # Check max limit (3)
-            high_count = Notification.query.filter_by(user_id=user_id, level='High')\
+            high_count = Notification.query.filter_by(from_user_id=user_id, level='High')\
                 .filter(Notification.timestamp >= today_start).count()
             if high_count >= 3:
                 return # Limit reached
@@ -382,6 +385,7 @@ def check_infestation_threshold(user_id, municipality, is_test=False):
         role='farmer'
     ).all()
     
+    # Build message based on level
     msg = ""
     if level == 'High':
         msg = f"CRITICAL: High Pest Activity ({pests} pests detected today) in {triggering_user.street_barangay}, {municipality}. Immediate check recommended."
@@ -393,6 +397,14 @@ def check_infestation_threshold(user_id, municipality, is_test=False):
             return # One warning is enough unless it becomes High
             
         msg = f"WARNING: Elevated Pest Activity ({pests} pests detected today) in {triggering_user.street_barangay}, {municipality}."
+    elif level == 'Low':
+        # Check if we already sent a Low alert today?
+        low_count = Notification.query.filter_by(from_user_id=user_id, level='Low')\
+            .filter(Notification.timestamp >= today_start).count()
+        if low_count >= 1:
+            return # One info alert is enough
+            
+        msg = f"INFO: Minor Pest Activity ({pests} pests detected today) in {triggering_user.street_barangay}, {municipality}. Monitor situation."
         
     if msg:
         # Send to ALL farmers in the area

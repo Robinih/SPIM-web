@@ -50,12 +50,27 @@ def seed_data():
                 db.session.add(user)
                 db.session.commit() # Commit to get ID
             
-            # Add random pest data
-            # First, add 3-8 records from TODAY to ensure alerts trigger
-            for _ in range(random.randint(3, 8)):
-                is_pest = random.choice([True, True, True, False]) # 3/4 chance pest
-                insect = random.choice(INSECTS) if is_pest else random.choice(BENEFICIALS)
+            # Determine scenario for this user to ensure we see all alert types
+            scenario = random.choice(['High', 'Medium', 'Low', 'Safe'])
+            
+            pests_to_add = 0
+            if scenario == 'High':
+                pests_to_add = random.randint(16, 25)
+            elif scenario == 'Medium':
+                pests_to_add = random.randint(6, 15)
+            elif scenario == 'Low':
+                pests_to_add = random.randint(1, 5)
+            else: # Safe
+                pests_to_add = 0
                 
+            print(f"  -> Scenario: {scenario} ({pests_to_add} pests)")
+            
+            # Add Detection Records (Individual pests)
+            msg_pests = min(pests_to_add, 5) # Add up to 5 individual records
+            pests_to_add -= msg_pests
+            
+            for _ in range(msg_pests):
+                insect = random.choice(INSECTS)
                 # TODAY with random hours
                 hours_ago = random.randint(0, 12)
                 record_time = ph_time_now() - timedelta(hours=hours_ago)
@@ -65,66 +80,49 @@ def seed_data():
                     insect_name=insect,
                     confidence=random.uniform(0.7, 0.99),
                     image_file="placeholder.jpg",
-                    is_beneficial=not is_pest,
-                    timestamp=record_time
-                )
-                db.session.add(record)
-            
-            # Then add 1-3 older records for historical data
-            for _ in range(random.randint(1, 3)):
-                is_pest = random.choice([True, True, False])
-                insect = random.choice(INSECTS) if is_pest else random.choice(BENEFICIALS)
-                
-                # Random date within 30 days (but NOT today)
-                days_ago = random.randint(1, 30)
-                record_time = ph_time_now() - timedelta(days=days_ago)
-
-                record = DetectionRecord(
-                    user_id=user.id,
-                    insect_name=insect,
-                    confidence=random.uniform(0.7, 0.99),
-                    image_file="placeholder.jpg",
-                    is_beneficial=not is_pest,
+                    is_beneficial=False,
                     timestamp=record_time
                 )
                 db.session.add(record)
                 
-            # 0-3 Counting Records (Groups)
-            for _ in range(random.randint(0, 3)):
-                count_val = random.randint(5, 50)
-                # Create a breakdown
-                breakdown = {}
-                pest_type = random.choice(INSECTS) if random.random() > 0.3 else random.choice(BENEFICIALS)
-                breakdown[pest_type] = count_val
+            # If we still need more pests for the scenario, add them as a Group Count
+            if pests_to_add > 0:
+                breakdown = {random.choice(INSECTS): pests_to_add}
+                hours_ago = random.randint(0, 12)
+                record_time = ph_time_now() - timedelta(hours=hours_ago)
                 
-                # Random date within 30 days
-                days_ago = random.randint(0, 30)
-                record_time = ph_time_now() - timedelta(days=days_ago)
-
                 c_record = CountingRecord(
                     user_id=user.id,
-                    total_count=count_val,
+                    total_count=pests_to_add,
                     image_file="placeholder_count.jpg",
                     breakdown=json.dumps(breakdown),
                     timestamp=record_time
                 )
                 db.session.add(c_record)
+
+            # Add some beneficials too (just for realism)
+            for _ in range(random.randint(0, 3)):
+                insect = random.choice(BENEFICIALS)
+                hours_ago = random.randint(0, 24)
+                record_time = ph_time_now() - timedelta(hours=hours_ago)
+                
+                record = DetectionRecord(
+                    user_id=user.id,
+                    insect_name=insect,
+                    confidence=random.uniform(0.7, 0.99),
+                    image_file="placeholder.jpg",
+                    is_beneficial=True,
+                    timestamp=record_time
+                )
+                db.session.add(record)
             
             # Commit all records for this user
             db.session.commit()
             
-            # Trigger alert check for this user (only for recent data)
-            # Only check for data from today to avoid spam from old dummy data
-            now_ph = ph_time_now()
-            today_start = now_ph.replace(hour=0, minute=0, second=0, microsecond=0)
-            
-            # Count pests today only
-            pests_today = DetectionRecord.query.filter_by(user_id=user.id, is_beneficial=False)\
-                .filter(DetectionRecord.timestamp >= today_start).count()
-            
-            # If there's significant pest activity today, trigger the check
-            if pests_today > 0:
-                check_infestation_threshold(user.id, user.municipality, is_test=False)
+            # Trigger alert check for this user (only if they have current data)
+            # The function checks counts internally
+            check_infestation_threshold(user.id, user.municipality, is_test=False)
+
             
             print(f"Created {user.full_name} with random data.")
             
