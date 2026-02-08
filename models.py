@@ -32,14 +32,17 @@ class DetectionRecord(db.Model):
 
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # TO: recipient
+    from_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # FROM: who triggered it (null for manual alerts)
     message = db.Column(db.String(255), nullable=False)
     level = db.Column(db.String(20), nullable=False, default='Low') # Low, Medium, High
     is_read = db.Column(db.Boolean, default=False)
     timestamp = db.Column(db.DateTime, index=True, default=ph_time)
 
-    # Relationship
-    user = db.relationship('User', backref=db.backref('notifications', lazy=True, cascade="all, delete-orphan"))
+    # Relationships
+    user = db.relationship('User', foreign_keys=[user_id], backref=db.backref('notifications', lazy=True, cascade="all, delete-orphan"))
+    from_user = db.relationship('User', foreign_keys=[from_user_id])
+
 
 class CountingRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)

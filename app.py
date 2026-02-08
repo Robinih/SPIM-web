@@ -371,24 +371,42 @@ def check_infestation_threshold(user_id, municipality, is_test=False):
             if high_count >= 3:
                 return # Limit reached
     
-    # Send Alert
+    # Send Alert to ALL farmers in the same municipality
+    triggering_user = User.query.get(user_id)
+    if not triggering_user:
+        return
+    
+    # Get all farmers in the same municipality
+    nearby_farmers = User.query.filter_by(
+        municipality=municipality,
+        role='farmer'
+    ).all()
+    
     msg = ""
     if level == 'High':
-        msg = f"CRITICAL: High Pest Activity ({pests} detected today) in {municipality}. Immediate check recommended."
+        msg = f"CRITICAL: High Pest Activity ({pests} pests detected today) in {triggering_user.street_barangay}, {municipality}. Immediate check recommended."
     elif level == 'Medium':
         # Check if we already sent a Medium alert today?
-        medium_count = Notification.query.filter_by(user_id=user_id, level='Medium')\
+        medium_count = Notification.query.filter_by(from_user_id=user_id, level='Medium')\
             .filter(Notification.timestamp >= today_start).count()
         if medium_count >= 1:
             return # One warning is enough unless it becomes High
             
-        msg = f"WARNING: Elevated Pest Activity ({pests} detected today) in {municipality}."
+        msg = f"WARNING: Elevated Pest Activity ({pests} pests detected today) in {triggering_user.street_barangay}, {municipality}."
         
     if msg:
-        new_notif = Notification(user_id=user_id, message=msg, level=level)
-        db.session.add(new_notif)
+        # Send to ALL farmers in the area
+        for farmer in nearby_farmers:
+            new_notif = Notification(
+                user_id=farmer.id,  # TO: this farmer
+                from_user_id=user_id,  # FROM: the farmer who triggered it
+                message=msg,
+                level=level
+            )
+            db.session.add(new_notif)
+        
         db.session.commit()
-        print(f"DEBUG: Auto-Alert ({level}) sent to User {user_id}")
+        print(f"DEBUG: Auto-Alert ({level}) broadcast to {len(nearby_farmers)} farmers in {municipality} (triggered by User {user_id})")
 
 
 
@@ -1629,11 +1647,15 @@ def mark_all_notifications_read():
 
 @app.route('/api/notifications', methods=['GET'])
 def api_notifications():
-    # Android API: Accept user_id as query parameter
+    # Support both Android API (user_id param) and Web (current_user)
     user_id = request.args.get('user_id')
     
+    # If no user_id provided, try to use current_user (web dashboard)
     if not user_id:
-        return jsonify({"error": "user_id parameter required"}), 400
+        if current_user.is_authenticated:
+            user_id = current_user.id
+        else:
+            return jsonify({"error": "user_id parameter required or login required"}), 400
     
     user = User.query.get(user_id)
     if not user:
@@ -1649,12 +1671,16 @@ def api_notifications():
         
     data = []
     for n in notifications:
+        from_name = n.from_user.full_name if n.from_user else "System"
+        to_name = n.user.full_name if n.user else "Unknown"
         data.append({
             'id': n.id,
             'message': n.message,
             'level': n.level,
             'timestamp': n.timestamp.strftime('%Y-%m-%d %H:%M'),
-            'is_read': n.is_read
+            'is_read': n.is_read,
+            'from_user': from_name,
+            'recipient_name': to_name  # For web dashboard display
         })
     return jsonify(data)  # Always returns array, empty [] if no notifications
 
