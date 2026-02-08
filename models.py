@@ -18,6 +18,7 @@ class User(UserMixin, db.Model):
     latitude = db.Column(db.Float, nullable=True)
     longitude = db.Column(db.Float, nullable=True)
     created_at = db.Column(db.DateTime, default=ph_time)
+    fcm_token = db.Column(db.String(255), nullable=True)  # Firebase Cloud Messaging token
 
 class DetectionRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)

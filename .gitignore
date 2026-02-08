@@ -20,3 +20,6 @@ Thumbs.db
 
 # Flask
 .webassets-cache
+
+# Firebase credentials (DO NOT COMMIT)
+serviceAccountKey.json

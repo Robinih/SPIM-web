@@ -11,6 +11,8 @@ from flask_login import LoginManager, login_user, login_required, logout_user, c
 from flask_cors import CORS
 from models import db, User, DetectionRecord, CountingRecord, Notification, Recommendation
 from utils import get_insect_status, is_beneficial
+import firebase_admin
+from firebase_admin import credentials, messaging
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'spim_secret_key_change_in_production' # TODO: Change this in production!
@@ -33,6 +35,21 @@ if not os.path.exists(app.config['RECOMMENDATION_FOLDER']):
     os.makedirs(app.config['RECOMMENDATION_FOLDER'])
 
 db.init_app(app)
+
+# Initialize Firebase Admin SDK
+try:
+    cred_path = os.path.join(app.root_path, 'serviceAccountKey.json')
+    if os.path.exists(cred_path):
+        cred = credentials.Certificate(cred_path)
+        firebase_admin.initialize_app(cred)
+        print("[OK] Firebase Admin SDK initialized successfully")
+    else:
+        print("[WARNING] serviceAccountKey.json not found. FCM notifications will not work.")
+        print("  Please follow firebase_setup_guide.md to set up Firebase.")
+except Exception as e:
+    print(f"[WARNING] Failed to initialize Firebase: {e}")
+    print("  FCM notifications will not work until Firebase is properly configured.")
+
 login_manager = LoginManager()
 login_manager.login_view = 'login'
 login_manager.init_app(app)
@@ -295,6 +312,85 @@ def api_stats_dashboard():
         "beneficials": beneficial_count
     })
 
+
+
+# --- FCM Push Notification Helper ---
+def send_fcm_notification(user_ids, title, body, data=None):
+    """
+    Send Firebase Cloud Messaging notification to multiple users
+    Args:
+        user_ids: List of user IDs or single user ID
+        title: Notification title
+        body: Notification message body
+        data: Optional dict of additional data
+    """
+    if not isinstance(user_ids, list):
+        user_ids = [user_ids]
+    
+    if not firebase_admin._apps:
+        print("⚠ FCM: Firebase not initialized, skipping push notification")
+        return
+    
+    success_count = 0
+    for user_id in user_ids:
+        user = User.query.get(user_id)
+        if not user or not user.fcm_token:
+            continue
+        
+        try:
+            message = messaging.Message(
+                notification=messaging.Notification(
+                    title=title,
+                    body=body,
+                ),
+                data=data or {},
+                token=user.fcm_token,
+                android=messaging.AndroidConfig(
+                    priority='high',
+                    notification=messaging.AndroidNotification(
+                        channel_id='SPIM_ALERTS',
+                        priority='max',
+                        sound='default',
+                    )
+                )
+            )
+            response = messaging.send(message)
+            success_count += 1
+            print(f"✓ FCM sent to user {user_id}: {response}")
+        except Exception as e:
+            print(f"✗ FCM failed for user {user_id}: {e}")
+            # If token is invalid, clear it
+            if 'registration-token-not-registered' in str(e) or 'invalid-registration-token' in str(e):
+                user.fcm_token = None
+                db.session.commit()
+    
+    return success_count
+
+
+# API endpoint to register device FCM token
+@app.route('/api/register_device_token', methods=['POST'])
+def register_device_token():
+    """
+    Mobile app calls this to register/update FCM token
+    Expected JSON: {"user_id": int, "fcm_token": str}
+    """
+    data = request.get_json()
+    user_id = data.get('user_id')
+    fcm_token = data.get('fcm_token')
+    
+    if not user_id or not fcm_token:
+        return jsonify({"error": "Missing user_id or fcm_token"}), 400
+    
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    # Update token
+    user.fcm_token = fcm_token
+    db.session.commit()
+    
+    print(f"✓ Registered FCM token for user {user_id} ({user.full_name})")
+    return jsonify({"message": "Device token registered successfully"}), 200
 
 
 # Helper Function for Auto-Threshold
@@ -1525,12 +1621,20 @@ def send_notification():
             recipients = [user]
             
     count = 0
+    recipient_ids = []
     for r in recipients:
         n = Notification(user_id=r.id, message=message, level=level)
         db.session.add(n)
+        recipient_ids.append(r.id)
         count += 1
         
     db.session.commit()
+    
+    # Send FCM push notifications
+    if recipient_ids:
+        title = f"{level} Alert"
+        send_fcm_notification(recipient_ids, title, message, data={'level': level})
+    
     flash(f'Alert sent to {count} farmers.', 'success')
     return redirect(url_for('developer_dashboard', _anchor='alerts') if current_user.role == 'developer' else url_for('admin_dashboard', _anchor='alerts'))
 
