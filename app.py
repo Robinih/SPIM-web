@@ -1840,11 +1840,18 @@ def api_notifications():
         # Or I just check for 'page' param availability?
         # Safe bet: If 'page' param is present, return Paginated Object.
         # If not, return List (legacy).
-        
         is_web_pagination = request.args.get('page') is not None
+
+        # Farmer view
+        # Check if client requested to include read notifications (history)
+        include_read = request.values.get('include_read', 'false').lower() == 'true'
         
-        notifications = Notification.query.filter_by(user_id=user_id, is_read=False)\
-            .order_by(Notification.timestamp.desc()).all()
+        query = Notification.query.filter_by(user_id=user_id)
+        
+        if not include_read:
+            query = query.filter_by(is_read=False)
+            
+        notifications = query.order_by(Notification.timestamp.desc()).all()
         
         data = []
         for n in notifications:
