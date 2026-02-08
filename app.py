@@ -1693,18 +1693,23 @@ def mark_all_notifications_read():
 @app.route('/api/notifications', methods=['GET'])
 def api_notifications():
     # Support both Android API (user_id param) and Web (current_user)
-    user_id = request.args.get('user_id')
+    # Use request.values to grab params from either Query String or Form Data (robustness)
+    user_id = request.values.get('user_id')
+    
+    # DEBUG LOG for PythonAnywhere
+    print(f"DEBUG: /api/notifications called. Params: {request.values}, user_id detected: {user_id}")
     
     # If no user_id provided, try to use current_user (web dashboard)
+    if not user_id and current_user.is_authenticated:
+        user_id = current_user.id
+        
+    # Validation: If still missing or invalid, return strict JSON Array []
     if not user_id:
-        if current_user.is_authenticated:
-            user_id = current_user.id
-        else:
-            return jsonify({"error": "user_id parameter required or login required"}), 400
+        return jsonify([]) 
     
     user = User.query.get(user_id)
     if not user:
-        return jsonify({"error": "User not found"}), 404
+        return jsonify([])
     
     # For Admin/Developer: Return ALL recent notifications (global log)
     # For Farmer: Return unread notifications for THEM
