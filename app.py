@@ -1700,7 +1700,11 @@ def api_notifications():
         data = []
         seen_groups = set()
         
-        for n in notifications[:20]:  # Still limit to 20 display items
+        # Iterate ALL notifications (up to 100) to find 20 unique groups to display
+        for n in notifications:
+            if len(data) >= 20: 
+                break  # Stop once we have 20 display items
+                
             if n.from_user_id:
                 key = (
                     n.from_user_id,
@@ -1724,7 +1728,7 @@ def api_notifications():
                     to_display = group[0].user.full_name if group[0].user else "Unknown"
                 
                 data.append({
-                    'id': n.id,
+                    'id': n.id, # Use ID of first item in group
                     'message': n.message,
                     'level': n.level,
                     'timestamp': n.timestamp.strftime('%Y-%m-%d %H:%M'),
@@ -1733,7 +1737,7 @@ def api_notifications():
                     'recipient_name': to_display
                 })
             else:
-                # Manual broadcast alert
+                # Manual unique alert
                 from_name = "System"
                 to_name = n.user.full_name if n.user else "Unknown"
                 data.append({
