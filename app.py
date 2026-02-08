@@ -1542,11 +1542,42 @@ def batch_delete_notifications():
     notification_ids = request.form.getlist('notification_ids')
     
     count = 0
+    deleted_ids = set() # Track deleted IDs to avoid redundant queries
+    
     for nid in notification_ids:
+        if nid in deleted_ids:
+            continue
+            
         note = Notification.query.get(nid)
-        # Admins and developers can delete ANY notification
-        if note:
+        if not note: 
+            continue
+            
+        # If it's part of a broadcast (Auto-Alert), delete the WHOLE group
+        if note.from_user_id:
+            # Find all siblings: Same Source, Message, Level, and Time (within same minute)
+            # Use same grouping logic as api_notifications
+            minute_start = note.timestamp.replace(second=0, microsecond=0)
+            minute_end = minute_start + timedelta(minutes=1)
+            
+            siblings = Notification.query.filter_by(
+                from_user_id=note.from_user_id,
+                message=note.message,
+                level=note.level
+            ).filter(
+                Notification.timestamp >= minute_start,
+                Notification.timestamp < minute_end
+            ).all()
+            
+            for sibling in siblings:
+                sid_str = str(sibling.id)
+                if sid_str not in deleted_ids:
+                    db.session.delete(sibling)
+                    deleted_ids.add(sid_str)
+                    count += 1
+        else:
+            # Manual alert (Single)
             db.session.delete(note)
+            deleted_ids.add(str(note.id)) # Use note.id to be safe
             count += 1
             
     db.session.commit()
