@@ -122,11 +122,13 @@ For the Android App:
 **Endpoint**: `GET /api/notifications`
 **Query Parameters**:
 - `user_id`: (Integer) The ID of the logged-in user.
+- `include_read`: (Boolean, Optional) Set to `true` to fetch ALL notifications (history). Default is `false` (Unread Only).
 
 **Example Request**:
-`GET http://<IP>:5000/api/notifications?user_id=1`
+`GET http://<IP>:5000/api/notifications?user_id=1&include_read=true`
 
 **Response (200 OK)**:
+Always returns a JSON Array `[]`, even if empty.
 ```json
 [
   {
@@ -134,14 +136,16 @@ For the Android App:
     "message": "High Pest Activity Detected! Please check your crops.",
     "level": "High",  // "High", "Medium", "Low"
     "timestamp": "2023-10-27 08:30",
-    "is_read": false
+    "is_read": false,
+    "from_user": "System" // or "Juan Dela Cruz"
   },
   {
     "id": 2,
     "message": "Typhoon incoming tomorrow.",
     "level": "Medium",
     "timestamp": "2023-10-26 14:00",
-    "is_read": true
+    "is_read": true,
+    "from_user": "System"
   }
 ]
 ```
@@ -149,3 +153,4 @@ For the Android App:
 > - Poll this endpoint periodically (e.g., every 5-10 minutes) or on app launch.
 > - Display "High" alerts with **Red** styling and "Medium/Low" with **Yellow/Info** styling.
 > - Show a system notification (Push Notification style) using the `message`.
+> - Use `include_read=true` to show a "History" tab in the app.
