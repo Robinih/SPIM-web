@@ -1596,17 +1596,12 @@ def mark_all_notifications_read():
     if not user:
         return jsonify({"error": "User not found"}), 404
     
-    # Update all unread notifications for this user
-    notifications = Notification.query.filter_by(user_id=user_id, is_read=False).all()
-    count = 0
-    for n in notifications:
-        n.is_read = True
-        count += 1
-    
+    # Clear (delete) all notifications for this user
+    count = Notification.query.filter_by(user_id=user_id).delete()
     db.session.commit()
     
     return jsonify({
-        "message": "All notifications marked as read",
+        "message": "All notifications cleared",
         "count": count
     }), 200
 
