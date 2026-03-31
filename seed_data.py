@@ -12,8 +12,12 @@ def seed_data():
     with app.app_context():
         print("Seeding 20 dummy accounts using Naic barangays...")
         
-        # Pests list
-        INSECTS = ["aphids", "leafbeetle", "slantfacedgrasshopper"]
+        # New 11 pest families
+        INSECTS = [
+            "Planthopper", "Leafhopper", "Weevil", "Tube-tailed Thrips", 
+            "Gall Midge", "Frit Fly", "Shore Fly", "Common Thrips",
+            "Snout Moth / Stem Borer", "Armyworm / Owlet Moth", "Skipper Butterfly"
+        ]
         BENEFICIALS = ["pygmygrasshopper"]
         
         barangays = list(NAIC_BARANGAY_COORDS.keys())
