@@ -1,0 +1,801 @@
+================================================================================
+SPIM - SMART PEST IDENTIFICATION AND MONITORING SYSTEM
+TECHNICAL ARCHITECTURE & SYSTEM DOCUMENTATION
+================================================================================
+
+TABLE OF CONTENTS
+-----------------
+1. System Overview
+2. Architecture Components
+3. Mobile Application (Android)
+4. Backend Server (Flask)
+5. Database Architecture
+6. Firebase Cloud Messaging (FCM)
+7. Communication Flows
+8. Offline-Online Synchronization
+9. AI/ML Model Integration
+10. Security & Authentication
+
+
+================================================================================
+1. SYSTEM OVERVIEW
+================================================================================
+
+SPIM is a hybrid mobile-web pest monitoring system designed for agricultural 
+use in Cavite, Philippines. The system allows farmers to identify and count 
+insect pests using AI-powered models, with data synced to a centralized 
+database for analysis and visualization.
+
+Key Technologies:
+- Frontend: Android (Kotlin) + Flask Web Dashboard (HTML/CSS/JavaScript)
+- Backend: Flask (Python) + SQLAlchemy ORM
+- Database: SQLite (development/production)
+- AI Models: TensorFlow Lite (YOLO-based detection & classification)
+- Push Notifications: Firebase Cloud Messaging (FCM)
+- API: RESTful JSON endpoints with CORS support
+
+
+================================================================================
+2. ARCHITECTURE COMPONENTS
+================================================================================
+
+Think of SPIM like a restaurant system with multiple parts working together:
+
+THE BIG PICTURE (4 Main Components):
+
+1. MOBILE APP (Android Phone) - The Waiter
+   - Takes orders from farmers (captures pest images)
+   - Has a notebook (local database) to write orders even without signal
+   - Can prepare some food itself (AI models run on phone)
+   - Sends orders to kitchen when WiFi available
+
+2. BACKEND SERVER (Flask/Python) - The Kitchen
+   - Receives orders from all waiters (mobile apps)
+   - Stores everything in the main recipe book (central database)
+   - Decides when to alert other restaurants (sends notifications)
+   - Serves information to the manager's office (web dashboard)
+
+3. CENTRAL DATABASE (SQLite) - The Recipe Book
+   - Stores all pest detection records from all farmers
+   - Keeps track of who detected what, when, and where
+   - Never forgets anything (permanent storage)
+
+4. FIREBASE - The Announcement System
+   - Like a PA system that can reach all phones instantly
+   - Sends urgent alerts even if app is closed
+   - Backend tells Firebase what to announce, Firebase delivers it
+
+
+HOW THEY WORK TOGETHER (Step-by-Step Flow):
+
+Step 1: Farmer Takes Photo
+   [Farmer's Phone] 
+   - Takes picture of pest
+   - AI model on phone identifies it immediately
+   - Saves result to phone's local database
+   Status: ✓ Saved locally, works even offline
+
+Step 2: Waiting to Sync (Offline Period)
+   [Phone's Local Database]
+   - Stores all unsynced records
+   - Farmer can view history anytime
+   - Red indicator shows "not synced yet"
+   Status: ⏳ Waiting for internet
+
+Step 3: Farmer Connects to WiFi
+   [Phone] → [Internet] → [Backend Server]
+   - Farmer taps "Sync" button
+   - Phone uploads all unsynced records
+   - Server receives the data
+   Status: ⬆️ Uploading...
+
+Step 4: Server Processes Data
+   [Backend Server] → [Central Database]
+   - Saves to main database
+   - Checks: "Are there too many pests in this area?"
+   - If yes, prepare an alert message
+   Status: ⚙️ Processing...
+
+Step 5: Alert Nearby Farmers
+   [Backend] → [Firebase] → [All Phones in Area]
+   - Server tells Firebase: "Send alert to farmers in Naic"
+   - Firebase pushes notification to all devices
+   - Phones show alert even if app closed
+   Status: 🔔 Alert sent!
+
+Step 6: Admin Views Dashboard
+   [Web Browser] → [Backend Server] → [Database]
+   - Admin opens website
+   - Server fetches all pest data
+   - Shows colorful map with pest hotspots
+   Status: 👁️ Monitoring
+
+
+SIMPLIFIED DIAGRAM:
+
+=======================================================================
+|                         THE CLOUD (SERVER SIDE)                     |
+=======================================================================
+|                                                                     |
+|   +------------------+          +------------------------+          |
+|   |  Flask Backend   |<-------->|  Central Database      |          |
+|   |   (Kitchen)      |          |   (Recipe Book)        |          |
+|   +--------+---------+          +------------------------+          |
+|            |                                                        |
+|            |                                                        |
+|            +---> Connects to Firebase ---> Sends Push Alerts       |
+|            |                                                        |
+|            +---> Serves Web Dashboard ---> Admin Views Reports     |
+|                                                                     |
+=======================================================================
+             |
+             |  INTERNET CONNECTION
+             |  (WiFi or Mobile Data)
+             |
+             v
+=======================================================================
+|                    FARMER'S PHONE (CLIENT SIDE)                    |
+=======================================================================
+|                                                                     |
+|  +---------------+    +---------------+    +------------------+    |
+|  |  Camera & UI  |    |  AI Models    |    |  Local Database  |    |
+|  |               |    |               |    |                  |    |
+|  | - Take photos |    | - Identify    |    | - Save offline   |    |
+|  | - View history|    | - Count pests |    | - Track synced   |    |
+|  +---------------+    +---------------+    +------------------+    |
+|                                                                     |
+|  ** Works 100% OFFLINE, syncs when internet available **           |
+|                                                                     |
+=======================================================================
+
+
+COMPONENT CONNECTIONS:
+
+1. Phone Camera ------> AI Model ------> Local Database
+   (Take photo)        (Identify)        (Save result)
+
+2. Local Database ---> [SYNC BUTTON] ---> Backend Server
+   (Unsynced data)     (When online)      (Upload)
+
+3. Backend Server ---> Central Database ---> Store Forever
+   (Process)           (Save)               (Never delete)
+
+4. Backend Server ---> Firebase ---> Push Notification ---> All Phones
+   (Alert trigger)     (Delivery)    (Show notification)    (Receive)
+
+5. Admin Browser ---> Backend Server ---> Fetch Data ---> Show Dashboard
+   (Request)          (Process)          (Query DB)      (Display map)
+
+
+KEY CONCEPTS EXPLAINED SIMPLY:
+
+1. "Offline-First" = Phone works without internet
+   - Like writing in a notebook, you don't need WiFi to write
+   - Later, you can copy notebook to computer when you have internet
+
+2. "API Calls" = Phone asking server for something
+   - Like calling restaurant to order food
+   - Phone says "Here's my pest data" → Server says "Got it, saved!"
+
+3. "Push Notifications" = Alerts that pop up automatically
+   - Like text messages, you get them even if app is closed
+   - Firebase handles the delivery system
+
+4. "Database Sync" = Copying phone data to server
+   - Like backing up your photos to Google Drive
+   - Keeps everything safe in one central place
+
+
+================================================================================
+3. MOBILE APPLICATION (ANDROID)
+================================================================================
+
+Technology Stack:
+- Language: Kotlin
+- UI: View Binding, Material Design Components
+- Database: SQLite (via SQLiteOpenHelper)
+- Networking: Retrofit 2 + OkHttp
+- ML: TensorFlow Lite Interpreter
+- Image Processing: Android Bitmap API
+
+Main Components:
+
+A) ACTIVITIES & FRAGMENTS
+   - MainActivity.kt → Entry point, redirects to MainNavActivity
+   - MainNavActivity.kt → Bottom navigation container
+   - HomeFragment.kt → Dashboard with pest statistics
+   - HistoryFragment.kt → Shows local & synced records with sync button
+   - StatisticsFragment.kt → Charts and analytics
+   - SettingsFragment.kt → User preferences, theme, language
+   - CountResultsActivity.kt → Displays detection results with bounding boxes
+
+B) LOCAL DATABASE
+   File: PestDatabaseHelper.kt
+   
+   Tables:
+   - pest_records
+     ├─ id (PRIMARY KEY)
+     ├─ pest_name (TEXT)
+     ├─ confidence (REAL)
+     ├─ image_blob (BLOB) ← Stores actual image bytes
+     ├─ timestamp (INTEGER)
+     ├─ is_synced (INTEGER) ← 0=unsynced, 1=synced
+     
+   - count_records
+     ├─ id (PRIMARY KEY)
+     ├─ total_count (INTEGER)
+     ├─ breakdown (TEXT) ← JSON format: {"leafbeetle": {"count": 3, "confidence": 0.85}}
+     ├─ image_blob (BLOB)
+     ├─ timestamp (INTEGER)
+     ├─ is_synced (INTEGER)
+   
+   Key Methods:
+   - insertPestRecord() → Save identification result
+   - insertCountRecord() → Save detection/count result
+   - getUnsyncedPestRecords() → Fetch records where is_synced = 0
+   - markPestRecordSynced(id) → Update sync flag after upload
+
+C) AI MODEL INTEGRATION
+   
+   Detection Model (Count Feature):
+   - File: PestDetection.tflite
+   - Type: YOLO-based object detection
+   - Input: 640x640 RGB image (normalized 0-1)
+   - Output: [1, 8, 8400] tensor → Bounding boxes, confidence, class ID
+   - Processing: CountResultsActivity.kt
+   
+   Classification Model (Identify Feature):
+   - File: PestClassification.tflite
+   - Type: CNN classifier
+   - Input: Resized image (model-specific dimensions)
+   - Output: Class probabilities for each pest species
+   
+   Inference Pipeline:
+   1. User captures image via camera
+   2. Image loaded as Bitmap
+   3. Preprocessing: Letterbox resize (maintains aspect ratio)
+   4. Convert to ByteBuffer (RGB, float32, normalized)
+   5. TFLite Interpreter runs inference
+   6. Post-processing: Parse output tensor, apply NMS (Non-Max Suppression)
+   7. Draw bounding boxes on image
+   8. Save to local database
+
+D) NETWORK LAYER
+   File: ApiService.kt, RetrofitClient.kt
+   
+   API Endpoints Used by Mobile:
+   - POST /api/register → Create farmer account
+   - POST /api/login → Authenticate user
+   - POST /api/sync/identify → Upload identification record
+   - POST /api/sync/count → Upload counting record
+   - POST /api/recommendation → Submit pest management query
+   - POST /api/register_device_token → Register FCM token
+   - GET /api/stats/dashboard → Fetch pest/beneficial counts
+   - GET /api/notifications?user_id={id} → Fetch alerts
+
+
+================================================================================
+4. BACKEND SERVER (FLASK)
+================================================================================
+
+File Structure:
+- app.py → Main application file with routes
+- models.py → SQLAlchemy database models
+- utils.py → Helper functions (is_beneficial, get_insect_status)
+- templates/ → HTML templates for web dashboard
+- static/ → CSS, JavaScript, uploaded images
+
+Core Features:
+
+A) DATABASE MODELS (models.py)
+
+   User Model:
+   - Stores farmer/admin accounts
+   - Fields: username, password_hash, full_name, municipality, 
+     street_barangay, latitude, longitude, role, fcm_token
+   
+   DetectionRecord Model:
+   - Stores individual pest identifications
+   - Fields: user_id, insect_name, confidence, image_file, 
+     timestamp, is_beneficial
+   
+   CountingRecord Model:
+   - Stores multi-pest detection results
+   - Fields: user_id, total_count, breakdown (JSON), image_file, timestamp
+   
+   Notification Model:
+   - Stores alerts sent to farmers
+   - Fields: user_id, from_user_id, message, level (Low/Medium/High), 
+     timestamp, is_read
+
+B) API ROUTES (app.py)
+
+   Authentication:
+   - POST /api/register
+     → Creates user with hashed password
+     → Auto-generates lat/long from municipality/barangay
+   
+   - POST /api/login
+     → Validates credentials (bcrypt check)
+     → Returns user_id and role
+   
+   Data Sync:
+   - POST /api/sync/identify
+     → Accepts multipart form: user_id, insect_name, confidence, image
+     → Saves to DetectionRecord table
+     → Triggers infestation threshold check
+   
+   - POST /api/sync/count
+     → Accepts: user_id, total_count, breakdown (JSON), image
+     → Saves to CountingRecord table
+     → Triggers infestation threshold check
+   
+   Push Notifications:
+   - POST /api/register_device_token
+     → Stores FCM token in User.fcm_token field
+     → Used for sending push notifications
+
+C) AUTOMATIC INFESTATION DETECTION
+
+   Function: check_infestation_threshold(user_id, municipality)
+   
+   Logic:
+   1. Count pests detected TODAY for this user
+      - Query DetectionRecord where is_beneficial=False
+      - Parse CountingRecord breakdown JSON for pest counts
+   
+   2. Determine severity level:
+      - High Alert: > 15 pests detected today
+      - Medium Alert: 6-15 pests
+      - Low Alert: 1-5 pests
+   
+   3. Rate Limiting (prevents spam):
+      - Max 3 High alerts per user per day
+      - Max 1 Medium alert (unless upgrades to High)
+      - 1-hour cooldown between alerts
+   
+   4. Broadcast to nearby farmers:
+      - Find all users in same municipality with role='farmer'
+      - Create Notification records for each
+      - Send FCM push notification
+   
+   Example Alert Message:
+   "CRITICAL: High Pest Activity (18 pests detected today) in 
+   Bagong Karsada, Naic. Immediate check recommended."
+
+
+================================================================================
+5. DATABASE ARCHITECTURE
+================================================================================
+
+Database: SQLite (spim.db)
+ORM: SQLAlchemy
+
+Entity Relationship:
+
+User (1) ──< (many) DetectionRecord
+User (1) ──< (many) CountingRecord
+User (1) ──< (many) Notification (as recipient)
+User (1) ──< (many) Notification (as trigger, nullable)
+
+Key Design Decisions:
+
+1. Philippine Time (UTC+8):
+   - All timestamps use ph_time() helper function
+   - Ensures consistency across distributed farmers
+
+2. Geographic Data:
+   - Users stored with latitude/longitude
+   - NAIC_BARANGAY_COORDS dictionary maps each barangay to coordinates
+   - Enables heatmap visualization and proximity-based alerts
+
+3. JSON Storage:
+   - CountingRecord.breakdown stores complex nested data:
+     Example: {"leafbeetle": {"count": 5, "confidence": 0.87}}
+   - Allows flexible species tracking without schema changes
+
+4. Cascade Deletes:
+   - If user deleted → all their records deleted (cascade="all, delete-orphan")
+   - Maintains referential integrity
+
+
+================================================================================
+6. FIREBASE CLOUD MESSAGING (FCM)
+================================================================================
+
+Purpose: Send real-time push notifications to mobile app even when closed
+
+Setup:
+1. Firebase project created via Firebase Console
+2. serviceAccountKey.json downloaded → placed in Flask root directory
+3. Firebase Admin SDK initialized in app.py (lines 40-51)
+4. Mobile app includes google-services.json for FCM client
+
+Workflow:
+
+A) TOKEN REGISTRATION (Mobile → Backend)
+   
+   1. Mobile app starts → Firebase SDK generates unique FCM token
+      File: MyFirebaseMessagingService.kt
+   
+   2. App sends token to backend:
+      POST /api/register_device_token
+      Body: {"user_id": 123, "fcm_token": "dXkR3..."}
+   
+   3. Backend saves token in User.fcm_token column
+
+B) SENDING NOTIFICATIONS (Backend → Mobile)
+   
+   Function: send_fcm_notification(user_ids, title, body, data)
+   
+   1. Backend retrieves user's fcm_token from database
+   
+   2. Constructs Firebase message:
+      messaging.Message(
+          notification=messaging.Notification(title="Alert", body="..."),
+          token=user.fcm_token,
+          android=messaging.AndroidConfig(
+              priority='high',
+              notification=messaging.AndroidNotification(
+                  channel_id='SPIM_ALERTS',
+                  sound='default'
+              )
+          )
+      )
+   
+   3. Calls messaging.send(message) → Firebase servers
+   
+   4. Firebase delivers push to device via token
+   
+   5. MyFirebaseMessagingService.onMessageReceived() handles display
+
+C) NOTIFICATION CHANNELS (Android)
+   
+   - Channel ID: "SPIM_ALERTS"
+   - Importance: High (shows as heads-up notification)
+   - Sound: Default notification sound
+   - Vibration: Enabled
+
+
+================================================================================
+7. COMMUNICATION FLOWS
+================================================================================
+
+A) USER REGISTRATION FLOW
+
+   [Mobile App] → [Backend] → [Database]
+   
+   1. User fills registration form (username, password, location)
+   2. App sends POST /api/register with JSON payload
+   3. Backend:
+      - Validates username uniqueness
+      - Hashes password with bcrypt
+      - Maps municipality/barangay to lat/long coordinates
+      - Creates User record in database
+   4. Returns success + coordinates
+   5. App navigates to dashboard
+
+B) PEST IDENTIFICATION FLOW
+
+   [Mobile Camera] → [TFLite Model] → [Local DB] → [Backend] → [Central DB]
+   
+   1. User taps "Identify" button → opens camera
+   2. Captures image → saved as Bitmap
+   3. Image preprocessed and fed to PestClassification.tflite
+   4. Model outputs class probabilities
+   5. Top prediction displayed with confidence score
+   6. Record saved to local SQLite (is_synced=0)
+   7. User later taps "Sync" button
+   8. App reads unsynced records from local DB
+   9. Sends POST /api/sync/identify (multipart: image + metadata)
+   10. Backend saves to DetectionRecord table
+   11. Backend returns success
+   12. App marks record as synced (is_synced=1)
+
+C) PEST COUNTING FLOW
+
+   [Mobile Camera] → [YOLO Detection] → [NMS] → [Results Display] → [Sync]
+   
+   1. User taps "Count" → camera intent
+   2. Image captured
+   3. Loaded into CountResultsActivity
+   4. Preprocessing:
+      - Letterbox resize to 640x640 (maintains aspect ratio)
+      - Convert to float32 ByteBuffer (normalized RGB)
+   5. Run PestDetection.tflite inference
+   6. Parse output tensor [1, 8, 8400]:
+      - Each detection: [cx, cy, w, h, class_scores...]
+      - Extract bounding boxes + confidence + class_id
+   7. Apply Non-Max Suppression (IoU threshold 0.45)
+      - Removes duplicate overlapping boxes
+   8. Group detections by species:
+      {"leafbeetle": {"count": 3, "confidence": 0.85}}
+   9. Draw bounding boxes on image (red=pest, green=beneficial)
+   10. Display annotated image + breakdown list
+   11. Save to local count_records table with JSON breakdown
+   12. Sync uploads to backend when online
+
+D) ALERT NOTIFICATION FLOW
+
+   [Pest Detection] → [Threshold Check] → [Database] → [FCM] → [Mobile]
+   
+   1. Farmer syncs pest count showing 18 pests detected today
+   2. Backend calls check_infestation_threshold(user_id, municipality)
+   3. Logic determines: High Alert (>15 pests)
+   4. Query all farmers in same municipality
+   5. For each farmer:
+      - Create Notification record in database
+      - Call send_fcm_notification(farmer.id, title, body)
+   6. Firebase SDK sends push to each device token
+   7. MyFirebaseMessagingService receives message
+   8. Displays notification in status bar with sound/vibration
+
+E) WEB DASHBOARD ACCESS
+
+   [Browser] → [Flask Routes] → [Database Query] → [HTML Rendering]
+   
+   1. Admin/Developer logs in → POST /login
+   2. Flask validates credentials, sets session cookie
+   3. Redirects to /admin_heatmap (dashboard)
+   4. JavaScript loads:
+      - /api/heatmap_data → Fetches all users with pest counts
+      - /api/notifications?user_id={id} → Loads recent alerts
+   5. Leaflet.js renders interactive heatmap
+      - Markers colored by severity (red/orange/yellow/green)
+   6. Charts.js displays analytics:
+      - Daily pest trends
+      - Species distribution pie chart
+   7. Real-time updates via polling (every 30 seconds)
+
+
+================================================================================
+8. OFFLINE-ONLINE SYNCHRONIZATION
+================================================================================
+
+Design Philosophy: "Offline-First"
+- App fully functional without internet
+- Data persisted locally until sync possible
+- No data loss even if device offline for days
+
+Sync Mechanism:
+
+A) OFFLINE MODE
+   
+   - User operates normally (identify/count pests)
+   - All records saved to local SQLite with is_synced=0
+   - Images stored as BLOB in database (not file paths)
+   - Records visible in History fragment with "unsynced" indicator
+
+B) SYNC TRIGGER
+   
+   Manual: User taps "Sync" button in History fragment
+   Conditions:
+   - Must be logged in (sessionManager.isLoggedIn())
+   - Internet connection available
+   
+C) SYNC PROCESS (HistoryFragment.kt, performSync())
+   
+   1. Query local database:
+      - getUnsyncedPestRecords() → WHERE is_synced = 0
+      - getUnsyncedCountRecords() → WHERE is_synced = 0
+   
+   2. For each unsynced record:
+      a. Convert image BLOB to RequestBody (multipart/form-data)
+      b. HTTP POST to sync endpoint with metadata
+      c. If response.isSuccessful:
+         - markPestRecordSynced(id) → UPDATE is_synced = 1
+         - successCount++
+      d. If fails → failCount++
+   
+   3. Display toast: "Sync complete: X uploaded, Y failed"
+   
+   4. Refresh UI to update sync indicators
+
+D) DATA INTEGRITY
+   
+   - Local records NEVER deleted after sync (for offline access)
+   - Backend assigns new IDs (local ID ≠ server ID)
+   - No conflict resolution needed (append-only model)
+   - Duplicate prevention via is_synced flag
+
+
+================================================================================
+9. AI/ML MODEL INTEGRATION
+================================================================================
+
+Mobile-Side Inference (Edge Computing)
+
+Advantages:
+- Works offline (no API calls needed)
+- Instant results (no network latency)
+- Privacy-preserving (images never leave device until user syncs)
+- Cost-effective (no cloud GPU charges)
+
+Model Details:
+
+A) PEST DETECTION MODEL (Count Feature)
+   
+   File: PestDetection.tflite
+   Architecture: YOLOv8 (You Only Look Once)
+   
+   Input Tensor:
+   - Shape: [1, 3, 640, 640]
+   - Format: Float32, normalized [0, 1]
+   - Color: RGB
+   
+   Output Tensor:
+   - Shape: [1, 8, 8400]
+     → 8 = 4 bbox coords + 4 class scores
+     → 8400 = grid predictions
+   
+   Post-Processing:
+   1. Extract detections with confidence > 0.12
+   2. Convert from center-coords to corner-coords
+   3. Scale back to original image dimensions
+   4. Apply NMS (Non-Maximum Suppression)
+      - IoU threshold: 0.45
+      - Removes overlapping boxes for same object
+   
+   Supported Classes (labels.txt):
+   - leafbeetle
+   - leafhopper
+   - pygmygrasshopper (beneficial)
+   - slantfacedgrasshopper
+
+B) PEST CLASSIFICATION MODEL (Identify Feature)
+   
+   File: PestClassification.tflite
+   Architecture: MobileNetV2 / ResNet-based CNN
+   
+   Purpose: Single-insect identification
+   
+   Process:
+   1. User captures close-up photo of single pest
+   2. Image resized to model input dimensions
+   3. Model outputs probability distribution over classes
+   4. Display top prediction with confidence percentage
+
+C) MODEL OPTIMIZATION
+   
+   - Quantization: Models use 8-bit integers (reduces size 4x)
+   - TFLite format: Optimized for mobile (smaller than full TensorFlow)
+   - GPU delegation: Can use Android GPU for faster inference
+   - Thread pool: Parallel processing for batch detection
+
+
+================================================================================
+10. SECURITY & AUTHENTICATION
+================================================================================
+
+A) PASSWORD SECURITY
+   
+   - Hashing: Werkzeug's generate_password_hash (bcrypt)
+   - Never stores plaintext passwords
+   - Salted hashes prevent rainbow table attacks
+   
+   Registration:
+   password_hash = generate_password_hash(password)
+   
+   Login:
+   if check_password_hash(user.password_hash, password):
+       # Valid
+
+B) SESSION MANAGEMENT
+   
+   Web:
+   - Flask-Login manages sessions
+   - @login_required decorator protects routes
+   - Session cookies (secure, httpOnly)
+   
+   Mobile:
+   - SessionManager stores user_id in SharedPreferences
+   - Persists across app restarts
+   - No JWT (simpler approach for MVP)
+
+C) API AUTHENTICATION
+   
+   - Session-based (uses cookies)
+   - CORS enabled for cross-origin requests
+   - SESSION_COOKIE_SAMESITE = 'None' (for HTTPS)
+   - SESSION_COOKIE_SECURE = True
+
+D) FIREBASE SECURITY
+   
+   - serviceAccountKey.json kept server-side only
+   - FCM tokens rotated automatically by Firebase SDK
+   - Messages encrypted in transit (TLS)
+
+E) DATA VALIDATION
+   
+   - Input sanitization (secure_filename for uploads)
+   - SQL injection prevented (SQLAlchemy parameterized queries)
+   - File upload size limits
+
+
+================================================================================
+SYSTEM FLOW SUMMARY
+================================================================================
+
+1. FARMER WORKFLOW
+   
+   Morning:
+   - Opens SPIM app (offline)
+   - Walks to rice field
+   - Taps "Count" → captures photo
+   - YOLO model detects 12 leafhoppers
+   - Results saved locally
+   
+   Evening (WiFi available):
+   - Opens app → taps "Sync"
+   - Data uploads to central server
+   - Server detects medium infestation (12 pests)
+   - Broadcasts alert to nearby farmers via FCM
+
+2. ADMIN WORKFLOW
+   
+   - Logs into web dashboard
+   - Views live heatmap → sees red marker in Bagong Karsada
+   - Clicks marker → shows 12 leafhoppers detected 2 hours ago
+   - Broadcasts manual alert: "Inspect crops immediately"
+   - All farmers in Naic receive push notification
+
+3. DEVELOPER WORKFLOW
+   
+   - Similar to admin but with developer-specific tools
+   - Can view system logs, database exports
+   - Analytics dashboard for pest trends
+
+
+================================================================================
+KEY DESIGN PATTERNS
+================================================================================
+
+1. Repository Pattern
+   - PestDatabaseHelper abstracts database operations
+   - Makes testing/swapping storage easier
+
+2. Observer Pattern
+   - FCM notifications (backend publishes, mobile subscribes)
+
+3. Offline-First
+   - Local database as primary data source
+   - Server as backup/sync target
+
+4. RESTful API
+   - Stateless endpoints
+   - JSON payloads
+   - Standard HTTP methods (GET, POST)
+
+5. MVC (Model-View-Controller)
+   - Models: SQLAlchemy/data classes
+   - Views: HTML templates/Android layouts
+   - Controllers: Flask routes/Activity logic
+
+
+================================================================================
+DEPLOYMENT CONSIDERATIONS
+================================================================================
+
+Current: Development Mode (SQLite, Flask dev server)
+
+Production Recommendations:
+1. Database: PostgreSQL (better concurrency than SQLite)
+2. Server: Gunicorn + Nginx
+3. Hosting: AWS/Google Cloud/DigitalOcean
+4. HTTPS: Let's Encrypt SSL certificates
+5. Monitoring: Sentry for error tracking
+6. Backups: Automated daily database dumps
+7. CDN: CloudFlare for static assets
+8. Rate Limiting: Prevent API abuse
+
+
+================================================================================
+END OF DOCUMENT
+================================================================================
+
+This technical architecture document provides a comprehensive overview of the
+SPIM system. For specific implementation details, refer to the source code 
+files mentioned throughout this document.
+
+Last Updated: 2026-02-18
+Version: 1.0

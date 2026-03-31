@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_cors import CORS
 from models import db, User, DetectionRecord, CountingRecord, Notification, Recommendation
-from utils import get_insect_status, is_beneficial
+from utils import get_insect_status, is_beneficial, parse_breakdown
 import firebase_admin
 from firebase_admin import credentials, messaging
 
@@ -296,16 +296,13 @@ def api_stats_dashboard():
     
     counting_records = CountingRecord.query.all()
     for record in counting_records:
-        if record.breakdown:
-            try:
-                data = json.loads(record.breakdown)
-                for insect, count in data.items():
-                    if is_beneficial(insect):
-                        beneficial_count += count
-                    else:
-                        pest_count += count
-            except:
-                pass # Ignore malformed JSON
+        data = parse_breakdown(record.breakdown)
+        if data:
+            for insect, count in data.items():
+                if is_beneficial(insect):
+                    beneficial_count += count
+                else:
+                    pest_count += count
 
     return jsonify({
         "pests": pest_count,
@@ -414,19 +411,11 @@ def check_infestation_threshold(user_id, municipality, is_test=False):
         .filter(CountingRecord.timestamp >= today_start).all()
         
     for c in counts:
-        if c.breakdown:
-            try:
-                data = json.loads(c.breakdown)
-                for insect, val in data.items():
-                    safe_count = 0
-                    if isinstance(val, (int, float)): safe_count = int(val)
-                    elif isinstance(val, str) and val.isdigit(): safe_count = int(val)
-                    elif isinstance(val, dict): safe_count = int(val.get('count', 0))
-                    
-                    if not is_beneficial(insect):
-                        pests += safe_count
-            except:
-                pests += c.total_count # Assume pest if mixed/fail
+        data = parse_breakdown(c.breakdown)
+        if data:
+            for insect, val in data.items():
+                if not is_beneficial(insect):
+                    pests += val
         else:
              pests += c.total_count
 
@@ -669,16 +658,12 @@ def dashboard():
         pest_status = "Pest" # default
         
         # Try to parse breakdown for better description
-        if c.breakdown:
-            try:
-                data = json.loads(c.breakdown)
-                # If only one type, use that name
-                if len(data) == 1:
-                    name = list(data.keys())[0]
-                    desc = name
-                    pest_status = 'Beneficial' if is_beneficial(name) else 'Pest'
-            except:
-                pass
+        data = parse_breakdown(c.breakdown)
+        if data:
+            if len(data) == 1:
+                name = list(data.keys())[0]
+                desc = name
+                pest_status = 'Beneficial' if is_beneficial(name) else 'Pest'
                 
         timeline.append({
             'type': 'Count',
@@ -709,13 +694,10 @@ def dashboard():
     # Iterate Counts
     for c in counts:
         d_str = c.timestamp.strftime('%Y-%m-%d')
-        if c.breakdown:
-            try:
-                data = json.loads(c.breakdown)
-                for name, val in data.items():
-                    add_stat(d_str, name, val)
-            except:
-                add_stat(d_str, 'Mixed', c.total_count)
+        data = parse_breakdown(c.breakdown)
+        if data:
+            for name, val in data.items():
+                add_stat(d_str, name, val)
         else:
             add_stat(d_str, 'Mixed', c.total_count)
             
@@ -733,33 +715,18 @@ def dashboard():
         })
         
     for c in counts:
-        parsed = False
-        if c.breakdown:
-            try:
-                data = json.loads(c.breakdown)
-                for name, val in data.items():
-                    # Sanitize count
-                    safe_count = 0
-                    if isinstance(val, (int, float)):
-                        safe_count = int(val)
-                    elif isinstance(val, str) and val.isdigit():
-                        safe_count = int(val)
-                    elif isinstance(val, dict):
-                        safe_count = int(val.get('count', 0))
-                        
-                    timeline.append({
-                        'type': 'Count',
-                        'timestamp': c.timestamp,
-                        'desc': name,
-                        'count': safe_count,
-                        'status': 'Beneficial' if is_beneficial(name) else 'Pest',
-                        'image': c.image_file
-                    })
-                parsed = True
-            except:
-                pass
-        
-        if not parsed:
+        data = parse_breakdown(c.breakdown)
+        if data:
+            for name, val in data.items():
+                timeline.append({
+                    'type': 'Count',
+                    'timestamp': c.timestamp,
+                    'desc': name,
+                    'count': val,
+                    'status': 'Beneficial' if is_beneficial(name) else 'Pest',
+                    'image': c.image_file
+                })
+        else:
             timeline.append({
                 'type': 'Count',
                 'timestamp': c.timestamp,
@@ -790,26 +757,14 @@ def dashboard():
         
     for c in counts:
         d_str = c.timestamp.strftime('%Y-%m-%d')
-        if c.breakdown:
-            try:
-                data = json.loads(c.breakdown)
-                for name, val in data.items():
-                    # Sanitize count
-                    safe_count = 0
-                    if isinstance(val, (int, float)):
-                        safe_count = int(val)
-                    elif isinstance(val, str) and val.isdigit():
-                        safe_count = int(val)
-                    elif isinstance(val, dict):
-                        safe_count = int(val.get('count', 0))
-                    add_stat(d_str, name, safe_count)
-                    if is_beneficial(name):
-                        total_beneficials += safe_count
-                    else:
-                        total_pests += safe_count
-            except:
-                add_stat(d_str, 'Mixed', c.total_count)
-                total_pests += c.total_count
+        data = parse_breakdown(c.breakdown)
+        if data:
+            for name, val in data.items():
+                add_stat(d_str, name, val)
+                if is_beneficial(name):
+                    total_beneficials += val
+                else:
+                    total_pests += val
         else:
             add_stat(d_str, 'Mixed', c.total_count)
             total_pests += c.total_count
@@ -868,31 +823,18 @@ def admin_farmer_view(user_id):
         })
         
     for c in counts:
-        parsed = False
-        if c.breakdown:
-            try:
-                data = json.loads(c.breakdown)
-                # If breakdown exists, we can split it or keep as one. 
-                # Farmer dashboard splits them in timeline if possible.
-                for name, val in data.items():
-                    safe_count = 0
-                    if isinstance(val, (int, float)): safe_count = int(val)
-                    elif isinstance(val, str) and val.isdigit(): safe_count = int(val)
-                    elif isinstance(val, dict): safe_count = int(val.get('count', 0))
-                        
-                    timeline.append({
-                        'type': 'Count',
-                        'timestamp': c.timestamp,
-                        'desc': name,
-                        'count': safe_count,
-                        'status': 'Beneficial' if is_beneficial(name) else 'Pest',
-                        'image': c.image_file
-                    })
-                parsed = True
-            except:
-                pass
-        
-        if not parsed:
+        data = parse_breakdown(c.breakdown)
+        if data:
+            for name, val in data.items():
+                timeline.append({
+                    'type': 'Count',
+                    'timestamp': c.timestamp,
+                    'desc': name,
+                    'count': val,
+                    'status': 'Beneficial' if is_beneficial(name) else 'Pest',
+                    'image': c.image_file
+                })
+        else:
             timeline.append({
                 'type': 'Count',
                 'timestamp': c.timestamp,
@@ -923,23 +865,14 @@ def admin_farmer_view(user_id):
         
     for c in counts:
         d_str = c.timestamp.strftime('%Y-%m-%d')
-        if c.breakdown:
-            try:
-                data = json.loads(c.breakdown)
-                for name, val in data.items():
-                    safe_count = 0
-                    if isinstance(val, (int, float)): safe_count = int(val)
-                    elif isinstance(val, str) and val.isdigit(): safe_count = int(val)
-                    elif isinstance(val, dict): safe_count = int(val.get('count', 0))
-                    
-                    add_stat(d_str, name, safe_count)
-                    if is_beneficial(name):
-                        total_beneficials += safe_count
-                    else:
-                        total_pests += safe_count
-            except:
-                add_stat(d_str, 'Mixed', c.total_count)
-                total_pests += c.total_count
+        data = parse_breakdown(c.breakdown)
+        if data:
+            for name, val in data.items():
+                add_stat(d_str, name, val)
+                if is_beneficial(name):
+                    total_beneficials += val
+                else:
+                    total_pests += val
         else:
             add_stat(d_str, 'Mixed', c.total_count)
             total_pests += c.total_count
@@ -1047,29 +980,13 @@ def admin_dashboard():
                 u_pests += 1
         
         for c in u_counts:
-             if c.breakdown:
-                try:
-                    data = json.loads(c.breakdown)
-                    for insect, count_obj in data.items():
-                        # Extract count logic
-                        safe_count = 0
-                        if isinstance(count_obj, (int, float)):
-                            safe_count = int(count_obj)
-                        elif isinstance(count_obj, str) and count_obj.isdigit():
-                            safe_count = int(count_obj)
-                        elif isinstance(count_obj, dict):
-                             # Fallback extraction similar to logs
-                             for v in count_obj.values():
-                                if isinstance(v, (int, float)):
-                                    safe_count = int(v)
-                                    break
-                        
-                        if is_beneficial(insect):
-                            u_beneficials += safe_count
-                        else:
-                            u_pests += safe_count
-                except:
-                    pass
+            data = parse_breakdown(c.breakdown)
+            if data:
+                for insect, safe_count in data.items():
+                    if is_beneficial(insect):
+                        u_beneficials += safe_count
+                    else:
+                        u_pests += safe_count
         
         # Determine color (New Logic)
         color = 'gray'
@@ -1120,65 +1037,28 @@ def admin_dashboard():
         
     for c in counts:
         # Split counting record into individual rows per insect if possible
-        parsed = False
-        if c.breakdown:
-            try:
-                data = json.loads(c.breakdown)
-                # data = {"Aphids": 5, "Beetle": 2}
-                for insect, count_obj in data.items():
-                    # Sanitize count to ensure it's an integer
-                    safe_count = 0
-                    try:
-                        # Case 1: Already a number
-                        if isinstance(count_obj, (int, float)):
-                            safe_count = int(count_obj)
-                        # Case 2: String number
-                        elif isinstance(count_obj, str) and count_obj.isdigit():
-                            safe_count = int(count_obj)
-                        # Case 3: Dictionary (e.g. {"count": 5} or {"value": 5})
-                        elif isinstance(count_obj, dict):
-                            # Try common keys
-                            if 'count' in count_obj:
-                                safe_count = int(count_obj['count'])
-                            elif 'value' in count_obj:
-                                safe_count = int(count_obj['value'])
-                            elif 'qty' in count_obj:
-                                safe_count = int(count_obj['qty'])
-                            else:
-                                # Fallback: Grab the first numeric value found
-                                for v in count_obj.values():
-                                    if isinstance(v, (int, float)):
-                                        safe_count = int(v)
-                                        break
-                                    elif isinstance(v, str) and v.isdigit():
-                                        safe_count = int(v)
-                                        break
-                    except:
-                        pass
-
-                    all_logs.append({
-                        "type": "Count",
-                        "id": c.id,
-                        "timestamp": c.timestamp,
-                        "user": c.user,
-                        "insect_name": insect,
-                        "is_beneficial": is_beneficial(insect), # Now we can allow specific status
-                        "count_val": safe_count,
-                        "confidence": None,
-                        "image_file": c.image_file,
-                        "raw_obj": c
-                    })
-                parsed = True
-            except:
-                pass # Fallback to single row if parsing fails
-
-        if not parsed:    
+        data = parse_breakdown(c.breakdown)
+        if data:
+            for insect, safe_count in data.items():
+                all_logs.append({
+                    "type": "Count",
+                    "id": c.id,
+                    "timestamp": c.timestamp,
+                    "user": c.user,
+                    "insect_name": insect,
+                    "is_beneficial": is_beneficial(insect),
+                    "count_val": safe_count,
+                    "confidence": None,
+                    "image_file": c.image_file,
+                    "raw_obj": c
+                })
+        else:
             all_logs.append({
                 "type": "Count",
                 "id": c.id,
                 "timestamp": c.timestamp,
                 "user": c.user,
-                "insect_name": "Unknown/Error", # Or raw string
+                "insect_name": "Unknown/Error",
                 "is_beneficial": None, 
                 "count_val": c.total_count,
                 "confidence": None,
@@ -1326,22 +1206,11 @@ def developer_dashboard():
             else: u_pests += 1
         
         for c in u_counts:
-             if c.breakdown:
-                try:
-                    data = json.loads(c.breakdown)
-                    for insect, count_obj in data.items():
-                        safe_count = 0
-                        if isinstance(count_obj, (int, float)): safe_count = int(count_obj)
-                        elif isinstance(count_obj, str) and count_obj.isdigit(): safe_count = int(count_obj)
-                        elif isinstance(count_obj, dict):
-                             for v in count_obj.values():
-                                if isinstance(v, (int, float)):
-                                    safe_count = int(v)
-                                    break
-                        if is_beneficial(insect): u_beneficials += safe_count
-                        else: u_pests += safe_count
-                except:
-                    pass
+            data = parse_breakdown(c.breakdown)
+            if data:
+                for insect, safe_count in data.items():
+                    if is_beneficial(insect): u_beneficials += safe_count
+                    else: u_pests += safe_count
 
         color = 'gray'
         if u_pests == 0 and u_beneficials == 0: color = 'gray'
@@ -1370,31 +1239,15 @@ def developer_dashboard():
         })
         
     for c in counts:
-        parsed = False
-        if c.breakdown:
-            try:
-                data = json.loads(c.breakdown)
-                for insect, count_obj in data.items():
-                    safe_count = 0
-                    if isinstance(count_obj, (int, float)): safe_count = int(count_obj)
-                    elif isinstance(count_obj, str) and count_obj.isdigit(): safe_count = int(count_obj)
-                    elif isinstance(count_obj, dict):
-                        if 'count' in count_obj: safe_count = int(count_obj['count'])
-                        elif 'value' in count_obj: safe_count = int(count_obj['value'])
-                        elif 'qty' in count_obj: safe_count = int(count_obj['qty'])
-                        else:
-                            for v in count_obj.values():
-                                if isinstance(v, (int, float)): safe_count = int(v); break
-                                elif isinstance(v, str) and v.isdigit(): safe_count = int(v); break
-                    
-                    all_logs.append({
-                        "type": "Count", "id": c.id, "timestamp": c.timestamp, "user": c.user,
-                        "insect_name": insect, "is_beneficial": is_beneficial(insect),
-                        "count_val": safe_count, "confidence": None, "image_file": c.image_file, "raw_obj": c
-                    })
-                parsed = True
-            except: pass
-        if not parsed:    
+        data = parse_breakdown(c.breakdown)
+        if data:
+            for insect, safe_count in data.items():
+                all_logs.append({
+                    "type": "Count", "id": c.id, "timestamp": c.timestamp, "user": c.user,
+                    "insect_name": insect, "is_beneficial": is_beneficial(insect),
+                    "count_val": safe_count, "confidence": None, "image_file": c.image_file, "raw_obj": c
+                })
+        else:
             all_logs.append({
                 "type": "Count", "id": c.id, "timestamp": c.timestamp, "user": c.user,
                 "insect_name": "Mixed Count", "is_beneficial": None, 
@@ -1522,49 +1375,12 @@ def export_data():
         
     # Counts
     for c in counts:
-        # Try to parse
-        insect_name = "Mixed"
-        status = "Pest"
-        if c.breakdown:
-            try:
-                data = json.loads(c.breakdown)
-                # If we want detailed rows for counts, we can loop here
-                # Or just summary. Let's do summary + breakdown string to keep it simple 1-to-1 record
-                # Actually user requested "export data", usually detailed is better.
-                # Let's iterate breakdown to match logs view
-                first = True
-                for name, val in data.items():
-                    s = 'Beneficial' if is_beneficial(name) else 'Pest'
-                    
-                    # Ensure val is an integer count
-                    clean_val = 0
-                    if isinstance(val, (int, float)):
-                        clean_val = int(val)
-                    elif isinstance(val, str) and val.isdigit():
-                        clean_val = int(val)
-                    elif isinstance(val, dict):
-                        # Try to extract count from dictionary
-                        if 'count' in val:
-                            clean_val = int(val['count'])
-                        elif 'value' in val:
-                            clean_val = int(val['value'])
-                        elif 'qty' in val:
-                            clean_val = int(val['qty'])
-                        else:
-                            # Fallback: grab first numeric value
-                            for v in val.values():
-                                if isinstance(v, (int, float)):
-                                    clean_val = int(v)
-                                    break
-                                elif isinstance(v, str) and v.isdigit():
-                                    clean_val = int(v)
-                                    break
-                    
-                    cw.writerow(['Count', c.id, c.timestamp, c.user.full_name, c.user.municipality, name, clean_val, s])
-                    first = False
-                if not first: continue # if we wrote rows, skip the fallback write
-            except:
-                pass
+        data = parse_breakdown(c.breakdown)
+        if data:
+            for name, clean_val in data.items():
+                s = 'Beneficial' if is_beneficial(name) else 'Pest'
+                cw.writerow(['Count', c.id, c.timestamp, c.user.full_name, c.user.municipality, name, clean_val, s])
+            continue
         
         # Fallback if no breakdown or parse error
         cw.writerow(['Count', c.id, c.timestamp, c.user.full_name, c.user.municipality, 'Mixed/Unknown', c.total_count, 'Pest'])

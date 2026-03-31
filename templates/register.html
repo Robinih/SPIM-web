@@ -1,97 +1,170 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="en">
 
-{% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card shadow">
-            <div class="card-header bg-success text-white">
-                <h4 class="mb-0">Register</h4>
-            </div>
-            <div class="card-body">
-                <form method="POST" id="registerForm">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="full_name" class="form-label">Full Name</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
-                                <input type="text" class="form-control" id="full_name" name="full_name" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="username" class="form-label">Username</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-person"></i></span>
-                                <input type="text" class="form-control" id="username" name="username" required>
-                            </div>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - SPIM Monitor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+
+<body>
+    <div class="auth-wrapper" style="background: var(--surface-bg);">
+        <div class="col-12 auth-panel-right" style="background: var(--surface-bg);">
+            <div style="width: 100%; max-width: 540px;">
+                <!-- Logo -->
+                <div class="text-center mb-4">
+                    <div class="mb-2">
+                        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="SPIM"
+                            style="width: 64px; height: 64px; object-fit: contain;">
+                    </div>
+                    <h5 class="fw-bold" style="color: var(--spim-primary);">SPIM Monitor</h5>
+                </div>
+
+                {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-warning alert-dismissible fade show mb-3" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+
+                <!-- Registration Card -->
+                <div class="spim-card" style="backdrop-filter: blur(12px);">
+                    <div class="spim-card-header" style="border-bottom-color: var(--card-border);">
+                        <div>
+                            <h5 class="spim-card-title mb-0">Create your account</h5>
+                            <small style="color: var(--text-muted);">Fill in the details below to register</small>
                         </div>
                     </div>
+                    <div class="spim-card-body">
+                        <form method="POST" id="registerForm">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="full_name" class="form-label fw-semibold"
+                                        style="font-size: 0.8125rem;">Full Name</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
+                                        <input type="text" class="form-control" id="full_name" name="full_name"
+                                            placeholder="Juan Dela Cruz" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="username" class="form-label fw-semibold"
+                                        style="font-size: 0.8125rem;">Username</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                        <input type="text" class="form-control" id="username" name="username"
+                                            placeholder="Choose a username" required>
+                                    </div>
+                                </div>
+                            </div>
 
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Password</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                            <input type="password" class="form-control" id="password" name="password" required>
-                            <button class="btn btn-outline-secondary" type="button"
-                                onclick="togglePassword('password', this)">
-                                <i class="bi bi-eye"></i>
+                            <div class="mb-3">
+                                <label for="password" class="form-label fw-semibold"
+                                    style="font-size: 0.8125rem;">Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                                    <input type="password" class="form-control" id="password" name="password"
+                                        placeholder="Create a strong password" required>
+                                    <button class="btn btn-outline-secondary" type="button"
+                                        onclick="togglePassword('password', this)">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="municipality" class="form-label fw-semibold"
+                                        style="font-size: 0.8125rem;">Municipality</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+                                        <select class="form-select" id="municipality" name="municipality" required>
+                                            <option value="Naic" selected>Naic</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="street_barangay" class="form-label fw-semibold"
+                                        style="font-size: 0.8125rem;">Barangay</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-map"></i></span>
+                                        <select class="form-select" id="street_barangay" name="street_barangay"
+                                            required>
+                                            <option value="" selected disabled>Select Barangay...</option>
+                                            <option value="Bagong Karsada">Bagong Karsada</option>
+                                            <option value="Balsahan">Balsahan</option>
+                                            <option value="Bancaan">Bancaan</option>
+                                            <option value="Bucana Malaki">Bucana Malaki</option>
+                                            <option value="Bucana Sasahan">Bucana Sasahan</option>
+                                            <option value="Calubcob">Calubcob</option>
+                                            <option value="Capt. C. Nazareno (Poblacion)">Capt. C. Nazareno (Poblacion)
+                                            </option>
+                                            <option value="Gomez-Zamora (Poblacion)">Gomez-Zamora (Poblacion)</option>
+                                            <option value="Halang">Halang</option>
+                                            <option value="Humbac">Humbac</option>
+                                            <option value="Ibayo Estacion">Ibayo Estacion</option>
+                                            <option value="Ibayo Silangan">Ibayo Silangan</option>
+                                            <option value="Kanluran">Kanluran</option>
+                                            <option value="Labac">Labac</option>
+                                            <option value="Latoria">Latoria</option>
+                                            <option value="Mabulo">Mabulo</option>
+                                            <option value="Makina">Makina</option>
+                                            <option value="Malainen Bago">Malainen Bago</option>
+                                            <option value="Malainen Luma">Malainen Luma</option>
+                                            <option value="Molino">Molino</option>
+                                            <option value="Munting Mapino">Munting Mapino</option>
+                                            <option value="Muzon">Muzon</option>
+                                            <option value="Palangue 1 (Central)">Palangue 1 (Central)</option>
+                                            <option value="Palangue 2 &amp; 3">Palangue 2 &amp; 3</option>
+                                            <option value="Sabang">Sabang</option>
+                                            <option value="San Roque">San Roque</option>
+                                            <option value="Santulan">Santulan</option>
+                                            <option value="Sapa">Sapa</option>
+                                            <option value="Timalan Balsahan">Timalan Balsahan</option>
+                                            <option value="Timalan Concepcion">Timalan Concepcion</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-spim w-100 mt-2" style="padding: 0.7rem;">
+                                <i class="bi bi-person-plus me-1"></i> Create Account
                             </button>
-                        </div>
+                        </form>
                     </div>
+                </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="municipality" class="form-label">Municipality</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
-                                <select class="form-select" id="municipality" name="municipality" required>
-                                    <option value="Naic" selected>Naic</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="street_barangay" class="form-label">Barangay</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-map"></i></span>
-                                <select class="form-select" id="street_barangay" name="street_barangay" required>
-                                    <option value="" selected disabled>Select Barangay...</option>
-                                    <option value="Bagong Karsada">Bagong Karsada</option>
-                                    <option value="Balsahan">Balsahan</option>
-                                    <option value="Bancaan">Bancaan</option>
-                                    <option value="Bucana Malaki">Bucana Malaki</option>
-                                    <option value="Bucana Sasahan">Bucana Sasahan</option>
-                                    <option value="Calubcob">Calubcob</option>
-                                    <option value="Capt. C. Nazareno (Poblacion)">Capt. C. Nazareno (Poblacion)</option>
-                                    <option value="Gomez-Zamora (Poblacion)">Gomez-Zamora (Poblacion)</option>
-                                    <option value="Halang">Halang</option>
-                                    <option value="Humbac">Humbac</option>
-                                    <option value="Ibayo Estacion">Ibayo Estacion</option>
-                                    <option value="Ibayo Silangan">Ibayo Silangan</option>
-                                    <option value="Kanluran">Kanluran</option>
-                                    <option value="Labac">Labac</option>
-                                    <option value="Latoria">Latoria</option>
-                                    <option value="Mabulo">Mabulo</option>
-                                    <option value="Makina">Makina</option>
-                                    <option value="Malainen Bago">Malainen Bago</option>
-                                    <option value="Malainen Luma">Malainen Luma</option>
-                                    <option value="Molino">Molino</option>
-                                    <option value="Munting Mapino">Munting Mapino</option>
-                                    <option value="Muzon">Muzon</option>
-                                    <option value="Palangue 1 (Central)">Palangue 1 (Central)</option>
-                                    <option value="Palangue 2 & 3">Palangue 2 & 3</option>
-                                    <option value="Sabang">Sabang</option>
-                                    <option value="San Roque">San Roque</option>
-                                    <option value="Santulan">Santulan</option>
-                                    <option value="Sapa">Sapa</option>
-                                    <option value="Timalan Balsahan">Timalan Balsahan</option>
-                                    <option value="Timalan Concepcion">Timalan Concepcion</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <button type="submit" class="btn btn-success w-100">Register</button>
-                </form>
+                <p class="text-center mt-3" style="font-size: 0.875rem; color: var(--text-muted);">
+                    Already have an account?
+                    <a href="{{ url_for('login') }}" style="color: var(--spim-primary); font-weight: 600;">Sign in</a>
+                </p>
             </div>
         </div>
     </div>
-</div>
-{% endblock %}
+
+    <script>
+        function togglePassword(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const icon = btn.querySelector('i');
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            } else {
+                input.type = "password";
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            }
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

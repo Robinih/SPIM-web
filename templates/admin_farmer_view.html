@@ -82,54 +82,60 @@
 {% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12 d-flex justify-content-between align-items-center">
-        <div>
-            <h6 class="text-muted text-uppercase mb-1">Admin View</h6>
-            <h2 class="mb-0 fw-bold text-dark">Farmer Dashboard: <span class="text-primary">{{ farmer.full_name
-                    }}</span></h2>
-        </div>
-        <a href="{{ url_for('admin_dashboard', _anchor='farmers') }}" class="btn btn-secondary">
-            <i class="bi bi-arrow-left me-1"></i> Return to Admin Dashboard
-        </a>
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <div>
+        <p class="kpi-label mb-1" style="text-transform: uppercase; letter-spacing: 1px; font-size: 0.7rem;">Admin View
+        </p>
+        <h4 class="mb-0 fw-bold" style="color: var(--text-primary);">Farmer Dashboard: <span
+                style="color: var(--spim-primary);">{{ farmer.full_name }}</span></h4>
     </div>
+    <a href="{{ url_for('admin_dashboard', _anchor='farmers') }}" class="btn btn-spim-outline">
+        <i class="bi bi-arrow-left me-1"></i> Return to Dashboard
+    </a>
 </div>
 
-<div class="row mb-4">
+<!-- Top Section: Health Card + Farmer Details -->
+<div class="row g-3 mb-4 fade-in-up">
     <!-- Health Card -->
     <div class="col-md-4">
-        <div class="card shadow-sm border-0 rounded-3 h-100">
-            <div class="card-body p-4">
+        <div class="spim-card h-100">
+            <div class="spim-card-body p-4">
                 <div class="d-flex align-items-center mb-3">
-                    <div class="icon-shape icon-md bg-light-primary text-primary rounded-circle me-3">
-                        <i class="bi bi-heart-pulse-fill fs-4"></i>
+                    <div class="stat-icon green me-3" style="width: 40px; height: 40px; font-size: 1.1rem;">
+                        <i class="bi bi-heart-pulse-fill"></i>
                     </div>
-                    <h5 class="card-title mb-0 fw-bold">Farm Health</h5>
+                    <h6 class="spim-card-title mb-0">Farm Health</h6>
                 </div>
-                <hr class="text-muted opacity-25">
+                <hr style="opacity: 0.15;">
                 <div
                     class="d-flex flex-column flex-md-row justify-content-around align-items-center mb-3 gap-3 gap-md-0">
                     <div class="text-center w-100">
-                        <h6 class="text-muted small text-uppercase fw-semibold ls-1">Pest Pressure</h6>
-                        <h2 class="text-danger fw-bold mb-0">{{ pests }}</h2>
+                        <p class="kpi-label mb-0"
+                            style="text-transform: uppercase; letter-spacing: 1px; font-size: 0.65rem;">Pest Pressure
+                        </p>
+                        <div class="kpi-value" style="color: var(--color-pest);">{{ pests }}</div>
                     </div>
                     <div class="vr bg-secondary opacity-25 d-none d-md-block" style="height: 40px;"></div>
-                    <hr class="w-100 d-block d-md-none text-muted opacity-25 my-2">
+                    <hr class="w-100 d-block d-md-none my-2" style="opacity: 0.15;">
                     <div class="text-center w-100">
-                        <h6 class="text-muted small text-uppercase fw-semibold ls-1">Beneficials</h6>
-                        <h2 class="text-success fw-bold mb-0">{{ beneficials }}</h2>
+                        <p class="kpi-label mb-0"
+                            style="text-transform: uppercase; letter-spacing: 1px; font-size: 0.65rem;">Beneficials</p>
+                        <div class="kpi-value" style="color: var(--color-beneficial);">{{ beneficials }}</div>
                     </div>
                 </div>
 
                 <!-- Insect Breakdown List -->
                 {% if insect_breakdown %}
-                <div class="bg-light rounded-3 p-3">
-                    <h6 class="fw-bold mb-2 text-secondary small text-uppercase">Detected Insects</h6>
+                <div style="background: var(--surface-bg); border-radius: 0.5rem; padding: 0.75rem;">
+                    <h6 class="fw-bold mb-2 small"
+                        style="color: var(--text-muted); text-transform: uppercase; font-size: 0.65rem; letter-spacing: 1px;">
+                        Detected Insects</h6>
                     <ul class="list-unstyled mb-0">
                         {% for name, count in insect_breakdown.items() %}
                         <li class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="text-dark small">{{ name }}</span>
-                            <span class="badge bg-secondary rounded-pill">{{ count }}</span>
+                            <span class="small" style="color: var(--text-primary);">{{ name }}</span>
+                            <span class="badge bg-secondary rounded-pill" style="font-size: 0.65rem;">{{ count }}</span>
                         </li>
                         {% endfor %}
                     </ul>
@@ -139,31 +145,32 @@
         </div>
     </div>
 
-    <!-- Location Card -->
+    <!-- Location Card / Farmer Details -->
     <div class="col-md-8">
-        <div class="card shadow-sm border-0 rounded-3 h-100 bg-light">
-            <div class="card-body p-4">
-                <h5 class="alert-heading fw-bold text-dark mb-3">Farmer Details</h5>
+        <div class="spim-card h-100" style="background: var(--surface-bg);">
+            <div class="spim-card-body p-4">
+                <h6 class="spim-card-title mb-3">Farmer Details</h6>
                 <div class="row">
                     <div class="col-md-6 mb-2">
-                        <small class="text-muted d-block">Username</small>
+                        <small class="text-muted d-block" style="font-size: 0.7rem;">Username</small>
                         <span class="fw-bold">{{ farmer.username }}</span>
                     </div>
                     <div class="col-md-6 mb-2">
-                        <small class="text-muted d-block">Municipality</small>
+                        <small class="text-muted d-block" style="font-size: 0.7rem;">Municipality</small>
                         <span class="fw-bold">{{ farmer.municipality }}</span>
                     </div>
                     <div class="col-md-6 mb-2">
-                        <small class="text-muted d-block">Barangay</small>
+                        <small class="text-muted d-block" style="font-size: 0.7rem;">Barangay</small>
                         <span class="fw-bold">{{ farmer.street_barangay }}</span>
                     </div>
                     <div class="col-md-6 mb-2">
-                        <small class="text-muted d-block">Coordinates</small>
-                        <span class="fw-bold font-monospace">{{ "%.5f"|format(farmer.latitude) if farmer.latitude else
+                        <small class="text-muted d-block" style="font-size: 0.7rem;">Coordinates</small>
+                        <span class="fw-bold font-monospace" style="font-size: 0.85rem;">{{
+                            "%.5f"|format(farmer.latitude) if farmer.latitude else
                             'N/A' }}, {{ "%.5f"|format(farmer.longitude) if farmer.longitude else 'N/A' }}</span>
                     </div>
                     <div class="col-md-6 mb-2">
-                        <small class="text-muted d-block">Date Registered</small>
+                        <small class="text-muted d-block" style="font-size: 0.7rem;">Date Registered</small>
                         <span class="fw-bold">
                             {% if farmer.created_at %}
                             {{ farmer.created_at.strftime('%b %d, %Y') }}
@@ -179,23 +186,23 @@
 </div>
 
 <!-- Statistics Section -->
-<div class="row mb-5">
+<div class="row g-3 mb-4 fade-in-up">
     <div class="col-md-8">
-        <div class="card shadow-sm border-0 rounded-3 h-100">
-            <div class="card-header bg-white border-bottom-0 pt-4 px-4 pb-0">
-                <h5 class="mb-0 fw-bold">Activity Trend</h5>
+        <div class="spim-card h-100">
+            <div class="spim-card-header">
+                <h6 class="spim-card-title mb-0"><i class="bi bi-graph-up me-1"></i>Activity Trend</h6>
             </div>
-            <div class="card-body p-4">
+            <div class="spim-card-body p-4">
                 <canvas id="dailyChart" style="height: 300px;"></canvas>
             </div>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card shadow-sm border-0 rounded-3 h-100">
-            <div class="card-header bg-white border-bottom-0 pt-4 px-4 pb-0">
-                <h5 class="mb-0 fw-bold">Insect Breakdown</h5>
+        <div class="spim-card h-100">
+            <div class="spim-card-header">
+                <h6 class="spim-card-title mb-0"><i class="bi bi-pie-chart me-1"></i>Insect Breakdown</h6>
             </div>
-            <div class="card-body p-4 d-flex align-items-center justify-content-center">
+            <div class="spim-card-body p-4 d-flex align-items-center justify-content-center">
                 <div style="width: 100%; height: 250px;">
                     <canvas id="insectChart"></canvas>
                 </div>
@@ -204,131 +211,124 @@
     </div>
 </div>
 
-<div class="card shadow-sm rounded-3 border-0">
-    <div class="card-header bg-white border-bottom-0 pt-3 px-3">
-        <ul class="nav nav-tabs card-header-tabs" id="farmerTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active fw-semibold" id="activity-tab" data-bs-toggle="tab"
-                    data-bs-target="#activity" type="button" role="tab">Recent Activity</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link fw-semibold" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports"
-                    type="button" role="tab">My Field Reports</button>
-            </li>
-        </ul>
+<!-- Tabs Section -->
+<div class="spim-card fade-in-up">
+    <div class="spim-tabs" id="farmerTabs" role="tablist">
+        <button class="spim-tab-btn active" id="activity-tab" data-bs-toggle="tab" data-bs-target="#activity"
+            type="button" role="tab">
+            <i class="bi bi-clock-history"></i> <span class="tab-text">Recent Activity</span>
+        </button>
+        <button class="spim-tab-btn" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports" type="button"
+            role="tab">
+            <i class="bi bi-file-earmark-text"></i> <span class="tab-text">My Field Reports</span>
+        </button>
     </div>
 
-    <div class="card-body p-4">
-        <div class="tab-content" id="farmerTabsContent">
-            <!-- TAB 1: Activity -->
-            <div class="tab-pane fade show active" id="activity" role="tabpanel">
-
-                <!-- Timeline Grid -->
-                {% if timeline %}
-                <div class="row row-cols-1 row-cols-sm-2 row-cols-md-4 g-4">
-                    {% for item in timeline %}
-                    <div class="col">
-                        <div class="card h-100 shadow-sm border-0 transition-hover">
-                            <div class="position-relative"
-                                style="height: 160px; overflow: hidden; border-radius: 0.5rem 0.5rem 0 0;">
-                                <img src="{{ url_for('static', filename='uploads/' + item.image) }}" class="w-100 h-100"
-                                    style="object-fit: cover;" alt="Insect">
-                                <div class="position-absolute top-0 end-0 p-2">
-                                    {% if item.status == 'Beneficial' %}
-                                    <span class="badge bg-success shadow-sm">Beneficial</span>
-                                    {% else %}
-                                    <span class="badge bg-danger shadow-sm">Pest</span>
-                                    {% endif %}
-                                </div>
+    <div class="tab-content" id="farmerTabsContent">
+        <!-- TAB 1: Activity -->
+        <div class="tab-pane fade show active" id="activity" role="tabpanel">
+            {% if timeline %}
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-4 g-4">
+                {% for item in timeline %}
+                <div class="col">
+                    <div class="activity-card h-100">
+                        <div class="position-relative"
+                            style="height: 160px; overflow: hidden; border-radius: 0.75rem 0.75rem 0 0;">
+                            <img src="{{ url_for('static', filename='uploads/' + item.image) }}" class="w-100 h-100"
+                                style="object-fit: cover;" alt="Insect">
+                            <div class="position-absolute top-0 end-0 p-2">
+                                {% if item.status == 'Beneficial' %}
+                                <span class="badge-beneficial" style="font-size: 0.7rem;">Beneficial</span>
+                                {% else %}
+                                <span class="badge-pest" style="font-size: 0.7rem;">Pest</span>
+                                {% endif %}
                             </div>
-                            <div class="card-body p-3">
-                                <div class="mb-2">
-                                    <small class="text-muted d-block mb-1"><i class="bi bi-clock me-1"></i>{{
-                                        item.timestamp.strftime('%b %d, %H:%M') }}</small>
-                                    <h6 class="card-title text-truncate mb-0 fw-bold text-dark" title="{{ item.desc }}">
-                                        {{ item.desc }}
-                                    </h6>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center mt-3">
-                                    <span class="badge bg-light text-primary border border-primary-subtle">Count: {{
-                                        item.count }}</span>
-                                </div>
+                        </div>
+                        <div class="p-3">
+                            <div class="mb-2">
+                                <small class="text-muted d-block mb-1"><i class="bi bi-clock me-1"></i>{{
+                                    item.timestamp.strftime('%b %d, %H:%M') }}</small>
+                                <h6 class="text-truncate mb-0 fw-bold" style="color: var(--text-primary);"
+                                    title="{{ item.desc }}">
+                                    {{ item.desc }}
+                                </h6>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <span class="badge"
+                                    style="background: rgba(26,122,74,0.1); color: var(--spim-primary); border: 1px solid rgba(26,122,74,0.2);">Count:
+                                    {{ item.count }}</span>
                             </div>
                         </div>
                     </div>
-                    {% endfor %}
                 </div>
-                {% else %}
-                <div class="d-flex flex-column align-items-center justify-content-center py-5 text-center">
-                    <div class="mb-3 text-muted opacity-25">
-                        <i class="bi bi-inbox display-1"></i>
-                    </div>
-                    <h5 class="fw-bold text-secondary">No activity yet</h5>
-                    <p class="text-muted">Farmer has not synced any data.</p>
-                </div>
-                {% endif %}
+                {% endfor %}
             </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-inbox d-block" style="font-size: 3rem;"></i>
+                <h5 class="fw-bold text-secondary mt-2">No activity yet</h5>
+                <p class="text-muted">Farmer has not synced any data.</p>
+            </div>
+            {% endif %}
+        </div>
 
-            <!-- TAB 2: My Field Reports -->
-            <div class="tab-pane fade" id="reports" role="tabpanel">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light text-secondary text-uppercase fs-7">
-                            <tr>
-                                <th class="border-0">Date</th>
-                                <th class="border-0">Description</th>
-                                <th class="border-0">Status</th>
-                                <th class="border-0 text-end">Photo</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for rec in recommendations %}
-                            <tr>
-                                <td>
-                                    <div class="d-flex flex-column">
-                                        <span class="fw-medium">{{ rec.timestamp.strftime('%b %d, %Y') }}</span>
-                                        <small class="text-muted">{{ rec.timestamp.strftime('%H:%M') }}</small>
-                                    </div>
-                                </td>
-                                <td>
-                                    <p class="mb-0 text-truncate" style="max-width: 300px;">{{ rec.description }}</p>
-                                </td>
-                                <td>
-                                    {% if rec.status == 'Pending' %}
-                                    <span class="badge bg-warning text-dark bg-opacity-75"><i
-                                            class="bi bi-hourglass-split me-1"></i>Pending</span>
-                                    {% elif rec.status == 'Read' %}
-                                    <span class="badge bg-info bg-opacity-75"><i
-                                            class="bi bi-eye me-1"></i>Reviewing</span>
-                                    {% elif rec.status == 'Resolved' %}
-                                    <span class="badge bg-success bg-opacity-75"><i
-                                            class="bi bi-check-circle me-1"></i>Resolved</span>
-                                    {% else %}
-                                    <span class="badge bg-secondary">{{ rec.status }}</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-end">
-                                    <a href="{{ url_for('static', filename='uploads/recommendations/' + rec.image_path) }}"
-                                        target="_blank">
-                                        <img src="{{ url_for('static', filename='uploads/recommendations/' + rec.image_path) }}"
-                                            class="rounded-3 shadow-sm border"
-                                            style="width: 48px; height: 48px; object-fit: cover;">
-                                    </a>
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="4" class="text-center py-5">
-                                    <div class="text-muted mb-2">
-                                        <i class="bi bi-clipboard-x display-6 opacity-25"></i>
-                                    </div>
-                                    <p class="mb-0 text-muted">No field reports submitted.</p>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+        <!-- TAB 2: My Field Reports -->
+        <div class="tab-pane fade" id="reports" role="tabpanel">
+            <div class="table-responsive">
+                <table class="spim-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                            <th class="text-end">Photo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rec in recommendations %}
+                        <tr>
+                            <td>
+                                <div class="d-flex flex-column">
+                                    <span class="fw-medium">{{ rec.timestamp.strftime('%b %d, %Y') }}</span>
+                                    <small class="text-muted">{{ rec.timestamp.strftime('%H:%M') }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                <p class="mb-0 text-truncate" style="max-width: 300px;">{{ rec.description }}</p>
+                            </td>
+                            <td>
+                                {% if rec.status == 'Pending' %}
+                                <span class="badge bg-warning text-dark"><i
+                                        class="bi bi-hourglass-split me-1"></i>Pending</span>
+                                {% elif rec.status == 'Read' %}
+                                <span class="badge bg-info"><i class="bi bi-eye me-1"></i>Reviewing</span>
+                                {% elif rec.status == 'Resolved' %}
+                                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Resolved</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ rec.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <a href="{{ url_for('static', filename='uploads/recommendations/' + rec.image_path) }}"
+                                    target="_blank">
+                                    <img src="{{ url_for('static', filename='uploads/recommendations/' + rec.image_path) }}"
+                                        class="rounded-3 shadow-sm border"
+                                        style="width: 48px; height: 48px; object-fit: cover;">
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center py-5">
+                                <div class="empty-state">
+                                    <i class="bi bi-clipboard-x d-block" style="font-size: 2.5rem;"></i>
+                                    <p class="mb-0 text-muted mt-2">No field reports submitted.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

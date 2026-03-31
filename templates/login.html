@@ -1,39 +1,111 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="en">
 
-{% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white">
-                <h4 class="mb-0">Login</h4>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - SPIM Monitor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+
+<body>
+    <div class="auth-wrapper">
+        <!-- Left Branding Panel -->
+        <div class="col-lg-5 d-none d-lg-flex auth-panel-left">
+            <div class="auth-logo">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="SPIM"
+                    style="width: 40px; height: 40px; object-fit: contain;">
             </div>
-            <div class="card-body">
+            <h1>SPIM Monitor</h1>
+            <p>
+                Smart Pest Identification &amp; Monitoring for agricultural communities.
+                Track pest activity, receive real-time alerts, and protect your crops with data-driven insights.
+            </p>
+            <div class="mt-auto pt-4">
+                <small style="opacity: 0.5;">CvSU AgriTech &bull; Naic, Cavite</small>
+            </div>
+        </div>
+
+        <!-- Right Login Form Panel -->
+        <div class="col-lg-7 auth-panel-right">
+            <div class="auth-form-box">
+                <!-- Mobile logo (shown only on small screens) -->
+                <div class="d-lg-none text-center mb-4">
+                    <div class="auth-logo d-inline-flex mb-2"
+                        style="background: rgba(26,122,74,0.1); color: var(--spim-primary);">
+                        <i class="bi bi-bug"></i>
+                    </div>
+                    <h5 class="fw-bold" style="color: var(--spim-primary);">SPIM Monitor</h5>
+                </div>
+
+                {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-warning alert-dismissible fade show mb-3" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+
+                <h2 class="auth-form-title">Welcome back</h2>
+                <p class="auth-form-sub">Sign in to your account to continue</p>
+
                 <form method="POST">
-                    <div class="mb-3">
-                        <label for="username" class="form-label">Username</label>
+                    <div class="auth-input-group">
+                        <label for="username">Username</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-person"></i></span>
-                            <input type="text" class="form-control" id="username" name="username" required>
+                            <input type="text" class="form-control" id="username" name="username"
+                                placeholder="Enter your username" required>
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Password</label>
+                    <div class="auth-input-group">
+                        <label for="password">Password</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                            <input type="password" class="form-control" id="password" name="password" required>
+                            <input type="password" class="form-control" id="password" name="password"
+                                placeholder="Enter your password" required>
                             <button class="btn btn-outline-secondary" type="button"
                                 onclick="togglePassword('password', this)">
                                 <i class="bi bi-eye"></i>
                             </button>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100">Login</button>
+
+                    <button type="submit" class="btn btn-spim w-100 mt-3" style="padding: 0.7rem;">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
+                    </button>
                 </form>
-            </div>
-            <div class="card-footer text-center">
-                <small>Don't have an account? <a href="{{ url_for('register') }}">Register here</a></small>
+
+                <p class="text-center mt-4" style="font-size: 0.875rem; color: var(--text-muted);">
+                    Don't have an account?
+                    <a href="{{ url_for('register') }}" style="color: var(--spim-primary); font-weight: 600;">Register
+                        here</a>
+                </p>
             </div>
         </div>
     </div>
-</div>
-{% endblock %}
+
+    <script>
+        function togglePassword(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const icon = btn.querySelector('i');
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            } else {
+                input.type = "password";
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            }
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
