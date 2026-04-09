@@ -1,4 +1,4 @@
-from app import app, db, User, DetectionRecord, CountingRecord, NAIC_BARANGAY_COORDS, check_infestation_threshold
+from app import app, db, User, DetectionRecord, CountingRecord, Notification, NAIC_BARANGAY_COORDS, check_infestation_threshold
 import random
 from werkzeug.security import generate_password_hash
 from datetime import datetime, timedelta
@@ -108,6 +108,30 @@ def seed_data():
             # Commit all records for this user
             db.session.commit()
 
+            # Create a past notification for non-Safe scenarios (no FCM push, just DB record)
+            if scenario != 'Safe':
+                total_pests = msg_pests + (pests_to_add if pests_to_add > 0 else 0)
+                if scenario == 'High':
+                    notif_msg = f"CRITICAL: High Pest Activity ({total_pests} pests detected) in {user.street_barangay}, {user.municipality}. Immediate check recommended."
+                elif scenario == 'Medium':
+                    notif_msg = f"WARNING: Elevated Pest Activity ({total_pests} pests detected) in {user.street_barangay}, {user.municipality}."
+                else:
+                    notif_msg = f"INFO: Minor Pest Activity ({total_pests} pests detected) in {user.street_barangay}, {user.municipality}. Monitor situation."
+                
+                notif_time = ph_time_now() - timedelta(days=random.randint(1, 7), hours=random.randint(0, 12))
+                
+                # Send to all farmers in the same municipality as a past broadcast
+                all_farmers = User.query.filter_by(municipality=user.municipality, role='farmer').all()
+                for farmer in all_farmers:
+                    n = Notification(
+                        user_id=farmer.id,
+                        from_user_id=user.id,
+                        message=notif_msg,
+                        level=scenario,
+                        timestamp=notif_time
+                    )
+                    db.session.add(n)
+                db.session.commit()
             
             print(f"Created {user.full_name} with random data.")
             
