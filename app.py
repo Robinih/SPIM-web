@@ -491,6 +491,13 @@ def check_infestation_threshold(user_id, municipality, is_test=False):
             db.session.add(new_notif)
         
         db.session.commit()
+        
+        # Send FCM push notifications to all recipients
+        recipient_ids = [farmer.id for farmer in nearby_farmers]
+        if recipient_ids:
+            title = f"{level} Alert"
+            send_fcm_notification(recipient_ids, title, msg, data={'level': level})
+        
         print(f"DEBUG: Auto-Alert ({level}) broadcast to {len(nearby_farmers)} farmers in {municipality} (triggered by User {user_id})")
 
 
