@@ -74,9 +74,10 @@ def seed_data():
             
             for _ in range(msg_pests):
                 insect = random.choice(INSECTS)
-                # TODAY with random hours
+                # Past days (1-7 days ago) so they don't trigger today's FCM alerts
+                days_ago = random.randint(1, 7)
                 hours_ago = random.randint(0, 12)
-                record_time = ph_time_now() - timedelta(hours=hours_ago)
+                record_time = ph_time_now() - timedelta(days=days_ago, hours=hours_ago)
 
                 record = DetectionRecord(
                     user_id=user.id,
@@ -90,8 +91,9 @@ def seed_data():
             # If we still need more pests for the scenario, add them as a Group Count
             if pests_to_add > 0:
                 breakdown = {random.choice(INSECTS): pests_to_add}
+                days_ago = random.randint(1, 7)
                 hours_ago = random.randint(0, 12)
-                record_time = ph_time_now() - timedelta(hours=hours_ago)
+                record_time = ph_time_now() - timedelta(days=days_ago, hours=hours_ago)
                 
                 c_record = CountingRecord(
                     user_id=user.id,
@@ -105,10 +107,6 @@ def seed_data():
 
             # Commit all records for this user
             db.session.commit()
-            
-            # Trigger alert check for this user (only if they have current data)
-            # The function checks counts internally
-            check_infestation_threshold(user.id, user.municipality, is_test=False)
 
             
             print(f"Created {user.full_name} with random data.")
