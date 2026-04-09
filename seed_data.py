@@ -113,6 +113,53 @@ def seed_data():
             
             print(f"Created {user.full_name} with random data.")
             
+        # ---- 3 Guaranteed Alert Farmers (Low, Medium, High) ----
+        # These always produce recent data that triggers the infestation threshold
+        alert_scenarios = [
+            {'label': 'Low',    'pest_count': 3,  'barangay': 'Bancaan'},
+            {'label': 'Medium', 'pest_count': 10, 'barangay': 'Kanluran'},
+            {'label': 'High',   'pest_count': 20, 'barangay': 'Santulan'},
+        ]
+        
+        for idx, scenario in enumerate(alert_scenarios, start=1):
+            username = f"alert_test_{scenario['label'].lower()}"
+            barangay = scenario['barangay']
+            base_lat, base_lng = NAIC_BARANGAY_COORDS.get(barangay, (14.3, 120.8))
+            
+            if User.query.filter_by(username=username).first():
+                user = User.query.filter_by(username=username).first()
+            else:
+                user = User(
+                    username=username,
+                    full_name=f"Alert Farmer ({scenario['label']} - {barangay})",
+                    password_hash=generate_password_hash("password123"),
+                    municipality="Naic",
+                    street_barangay=barangay,
+                    role="farmer",
+                    latitude=base_lat + random.uniform(-0.001, 0.001),
+                    longitude=base_lng + random.uniform(-0.001, 0.001)
+                )
+                db.session.add(user)
+                db.session.commit()
+            
+            # Add pest records dated NOW so they count toward today's threshold
+            for j in range(scenario['pest_count']):
+                insect = random.choice(INSECTS)
+                record = DetectionRecord(
+                    user_id=user.id,
+                    insect_name=insect,
+                    confidence=random.uniform(0.75, 0.98),
+                    image_file="placeholder.jpg",
+                    timestamp=ph_time_now() - timedelta(minutes=random.randint(0, 60))
+                )
+                db.session.add(record)
+            
+            db.session.commit()
+            
+            # Trigger threshold check — this will fire the corresponding alert level
+            check_infestation_threshold(user.id, user.municipality, is_test=False)
+            print(f"  [ALERT SEED] {scenario['label']} alert farmer created: {user.full_name} ({scenario['pest_count']} pests)")
+
         print("Seeding complete!")
 
 if __name__ == "__main__":
