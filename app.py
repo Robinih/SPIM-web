@@ -1403,7 +1403,7 @@ def send_notification():
     count = 0
     recipient_ids = []
     for r in recipients:
-        n = Notification(user_id=r.id, message=message, level=level)
+        n = Notification(user_id=r.id, from_user_id=current_user.id, message=message, level=level)
         db.session.add(n)
         recipient_ids.append(r.id)
         count += 1
