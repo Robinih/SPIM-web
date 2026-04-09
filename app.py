@@ -1657,7 +1657,12 @@ def api_notifications():
                 
                 recipient_count = len(group)
                 if recipient_count > 1:
-                    to_display = f"All Farmers ({recipient_count} recipients)"
+                    barangays = set(x.user.street_barangay for x in group if x.user and x.user.street_barangay)
+                    if len(barangays) == 1:
+                        target_bgy = list(barangays)[0]
+                        to_display = f"Barangay {target_bgy} ({recipient_count} recipients)"
+                    else:
+                        to_display = f"All Farmers ({recipient_count} recipients)"
                 else:
                     to_display = group[0].user.full_name if group[0].user else "Unknown"
                 
