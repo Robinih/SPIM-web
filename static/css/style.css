@@ -39,7 +39,7 @@
 
     /* Semantic */
     --color-pest: #dc2626;
-    --color-beneficial: #16a34a;
+    --color-success: #16a34a;
     --color-warning: #d97706;
     --color-info: #0284c7;
     --color-danger-bg: #fee2e2;
@@ -432,7 +432,7 @@ body {
 
 .stat-icon.green {
     background: var(--color-success-bg);
-    color: var(--color-beneficial);
+    color: var(--color-success);
 }
 
 .stat-icon.red {
@@ -629,14 +629,7 @@ body {
     border-radius: 100px;
 }
 
-.badge-beneficial {
-    background: var(--color-success-bg);
-    color: var(--color-beneficial);
-    font-size: 0.7rem;
-    font-weight: 600;
-    padding: 0.2rem 0.55rem;
-    border-radius: 100px;
-}
+
 
 /* Legacy badge compatibility */
 .bg-pest {
@@ -644,26 +637,19 @@ body {
     color: white;
 }
 
-.bg-beneficial {
-    background-color: var(--color-beneficial) !important;
-    color: white;
-}
+
 
 .text-pest {
     color: var(--color-pest) !important;
 }
 
-.text-beneficial {
-    color: var(--color-beneficial) !important;
-}
+
 
 .border-pest {
     border: 3px solid var(--color-pest) !important;
 }
 
-.border-beneficial {
-    border: 3px solid var(--color-beneficial) !important;
-}
+
 
 /* Severity badges */
 .badge-high {

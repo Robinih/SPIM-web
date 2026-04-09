@@ -18,7 +18,6 @@ def seed_data():
             "Gall Midge", "Frit Fly", "Shore Fly", "Common Thrips",
             "Snout Moth / Stem Borer", "Armyworm / Owlet Moth", "Skipper Butterfly"
         ]
-        BENEFICIALS = ["pygmygrasshopper"]
         
         barangays = list(NAIC_BARANGAY_COORDS.keys())
         
@@ -84,7 +83,6 @@ def seed_data():
                     insect_name=insect,
                     confidence=random.uniform(0.7, 0.99),
                     image_file="placeholder.jpg",
-                    is_beneficial=False,
                     timestamp=record_time
                 )
                 db.session.add(record)
@@ -104,22 +102,7 @@ def seed_data():
                 )
                 db.session.add(c_record)
 
-            # Add some beneficials too (just for realism)
-            for _ in range(random.randint(0, 3)):
-                insect = random.choice(BENEFICIALS)
-                hours_ago = random.randint(0, 24)
-                record_time = ph_time_now() - timedelta(hours=hours_ago)
-                
-                record = DetectionRecord(
-                    user_id=user.id,
-                    insect_name=insect,
-                    confidence=random.uniform(0.7, 0.99),
-                    image_file="placeholder.jpg",
-                    is_beneficial=True,
-                    timestamp=record_time
-                )
-                db.session.add(record)
-            
+
             # Commit all records for this user
             db.session.commit()
             

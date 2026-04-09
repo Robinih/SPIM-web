@@ -94,11 +94,7 @@
                             style="display:inline-block; width: 15px; height: 15px; background: orange; border-radius: 50%; margin-right: 8px;"></span>
                         <small>Medium (6-15 Pests)</small>
                     </div>
-                    <div class="d-flex align-items-center mb-1">
-                        <span
-                            style="display:inline-block; width: 15px; height: 15px; background: green; border-radius: 50%; margin-right: 8px;"></span>
-                        <small>Beneficials Dominant</small>
-                    </div>
+
                     <div class="d-flex align-items-center">
                         <span
                             style="display:inline-block; width: 15px; height: 15px; background: gray; border-radius: 50%; margin-right: 8px;"></span>
@@ -182,15 +178,7 @@
                                         {{ log.insect_name }}
                                     </td>
                                     <td>
-                                        {% if log.is_beneficial is not none %}
-                                        {% if log.is_beneficial %}
-                                        <span class="badge bg-beneficial">Beneficial</span>
-                                        {% else %}
                                         <span class="badge bg-pest">Pest</span>
-                                        {% endif %}
-                                        {% else %}
-                                        <span class="badge bg-secondary">Unknown</span>
-                                        {% endif %}
                                     </td>
                                     <td>
                                         <span class="fw-bold">{{ log.count_val }}</span>
@@ -760,8 +748,7 @@
 
                 circle.bindPopup(`
                 <b>${point.name}</b><br>
-                Pests: <span class="text-danger fw-bold">${point.pests}</span><br>
-                Beneficials: <span class="text-success fw-bold">${point.beneficials}</span>
+                Pests: <span class="text-danger fw-bold">${point.pests}</span>
             `);
             });
 

@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_cors import CORS
 from models import db, User, DetectionRecord, CountingRecord, Notification, Recommendation
-from utils import get_insect_status, is_beneficial, parse_breakdown
+from utils import parse_breakdown
 import firebase_admin
 from firebase_admin import credentials, messaging
 
@@ -187,15 +187,11 @@ def sync_identify():
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(file_path)
         
-        # Determine beneficial status
-        beneficial = is_beneficial(insect_name)
-
         new_record = DetectionRecord(
             user_id=user_id,
             insect_name=insect_name,
             confidence=float(confidence) if confidence else 0.0,
-            image_file=filename, # Store relative filename
-            is_beneficial=beneficial
+            image_file=filename # Store relative filename
         )
         db.session.add(new_record)
         db.session.commit()
@@ -285,28 +281,21 @@ def api_recommendation():
     return jsonify({"error": "Failed to save"}), 500
 @app.route('/api/stats/dashboard', methods=['GET'])
 def api_stats_dashboard():
-    # Sum Pests vs Beneficials from DetectionRecord
-    pest_count = DetectionRecord.query.filter_by(is_beneficial=False).count()
-    beneficial_count = DetectionRecord.query.filter_by(is_beneficial=True).count()
-    
-    # You might also want to parse CountingRecord breakdown if it contributes to the total specific counts,
-    # but for this scaffold we'll stick to the requested "Sum all Pests vs. Beneficials from both tables".
-    # Since CountingRecord breakdown is JSON, it's harder to query directly in SQL without JSON support extensions.
-    # For now, we will iterate (not efficient for huge DBs but fine for MVP/Scaffold).
+    # Sum Pests from DetectionRecord
+    pest_count = DetectionRecord.query.count()
     
     counting_records = CountingRecord.query.all()
     for record in counting_records:
         data = parse_breakdown(record.breakdown)
         if data:
             for insect, count in data.items():
-                if is_beneficial(insect):
-                    beneficial_count += count
-                else:
-                    pest_count += count
+                pest_count += count
+        else:
+             pest_count += record.total_count
 
     return jsonify({
         "pests": pest_count,
-        "beneficials": beneficial_count
+        "beneficials": 0
     })
 
 
@@ -403,7 +392,7 @@ def check_infestation_threshold(user_id, municipality, is_test=False):
     
     # 1. Count Pests TODAY
     # Detections
-    pests = DetectionRecord.query.filter_by(user_id=user_id, is_beneficial=False)\
+    pests = DetectionRecord.query.filter_by(user_id=user_id)\
         .filter(DetectionRecord.timestamp >= today_start).count()
     
     # Counts
@@ -414,8 +403,7 @@ def check_infestation_threshold(user_id, municipality, is_test=False):
         data = parse_breakdown(c.breakdown)
         if data:
             for insect, val in data.items():
-                if not is_beneficial(insect):
-                    pests += val
+                pests += val
         else:
              pests += c.total_count
 
@@ -647,7 +635,7 @@ def dashboard():
             'timestamp': d.timestamp,
             'desc': d.insect_name,
             'count': 1,
-            'status': 'Beneficial' if d.is_beneficial else 'Pest',
+            'status': 'Pest',
             'image': d.image_file
         })
         
@@ -663,7 +651,7 @@ def dashboard():
             if len(data) == 1:
                 name = list(data.keys())[0]
                 desc = name
-                pest_status = 'Beneficial' if is_beneficial(name) else 'Pest'
+                pest_status = 'Pest'
                 
         timeline.append({
             'type': 'Count',
@@ -710,7 +698,7 @@ def dashboard():
             'timestamp': d.timestamp,
             'desc': d.insect_name,
             'count': 1,
-            'status': 'Beneficial' if d.is_beneficial else 'Pest',
+            'status': 'Pest',
             'image': d.image_file
         })
         
@@ -723,7 +711,7 @@ def dashboard():
                     'timestamp': c.timestamp,
                     'desc': name,
                     'count': val,
-                    'status': 'Beneficial' if is_beneficial(name) else 'Pest',
+                    'status': 'Pest',
                     'image': c.image_file
                 })
         else:
@@ -750,10 +738,7 @@ def dashboard():
         
     for d in detections:
         add_stat(d.timestamp.strftime('%Y-%m-%d'), d.insect_name, 1)
-        if d.is_beneficial:
-            total_beneficials += 1
-        else:
-            total_pests += 1
+        total_pests += 1
         
     for c in counts:
         d_str = c.timestamp.strftime('%Y-%m-%d')
@@ -761,10 +746,7 @@ def dashboard():
         if data:
             for name, val in data.items():
                 add_stat(d_str, name, val)
-                if is_beneficial(name):
-                    total_beneficials += val
-                else:
-                    total_pests += val
+                total_pests += val
         else:
             add_stat(d_str, 'Mixed', c.total_count)
             total_pests += c.total_count
@@ -818,7 +800,7 @@ def admin_farmer_view(user_id):
             'timestamp': d.timestamp,
             'desc': d.insect_name,
             'count': 1,
-            'status': 'Beneficial' if d.is_beneficial else 'Pest',
+            'status': 'Pest',
             'image': d.image_file
         })
         
@@ -831,7 +813,7 @@ def admin_farmer_view(user_id):
                     'timestamp': c.timestamp,
                     'desc': name,
                     'count': val,
-                    'status': 'Beneficial' if is_beneficial(name) else 'Pest',
+                    'status': 'Pest',
                     'image': c.image_file
                 })
         else:
@@ -858,10 +840,7 @@ def admin_farmer_view(user_id):
         
     for d in detections:
         add_stat(d.timestamp.strftime('%Y-%m-%d'), d.insect_name, 1)
-        if d.is_beneficial:
-            total_beneficials += 1
-        else:
-            total_pests += 1
+        total_pests += 1
         
     for c in counts:
         d_str = c.timestamp.strftime('%Y-%m-%d')
@@ -869,10 +848,7 @@ def admin_farmer_view(user_id):
         if data:
             for name, val in data.items():
                 add_stat(d_str, name, val)
-                if is_beneficial(name):
-                    total_beneficials += val
-                else:
-                    total_pests += val
+                total_pests += val
         else:
             add_stat(d_str, 'Mixed', c.total_count)
             total_pests += c.total_count
@@ -974,28 +950,19 @@ def admin_dashboard():
         u_counts = c_query.all()
             
         for d in u_detections:
-            if d.is_beneficial:
-                u_beneficials += 1
-            else:
-                u_pests += 1
+            u_pests += 1
         
         for c in u_counts:
             data = parse_breakdown(c.breakdown)
             if data:
                 for insect, safe_count in data.items():
-                    if is_beneficial(insect):
-                        u_beneficials += safe_count
-                    else:
-                        u_pests += safe_count
+                    u_pests += safe_count
         
         # Determine color (New Logic)
         color = 'gray'
-        if u_pests == 0 and u_beneficials == 0:
+        if u_pests == 0:
             color = 'gray'
-        elif u_beneficials > u_pests:
-            color = 'green'
         else:
-            # Pests are dominant or equal
             if u_pests > 15:
                 color = 'red'
             elif u_pests > 5: # 6 to 15
@@ -1028,7 +995,7 @@ def admin_dashboard():
             "timestamp": d.timestamp,
             "user": d.user,
             "insect_name": d.insect_name,
-            "is_beneficial": d.is_beneficial,
+            "is_beneficial": False,
             "count_val": 1,
             "confidence": d.confidence,
             "image_file": d.image_file,
@@ -1046,7 +1013,7 @@ def admin_dashboard():
                     "timestamp": c.timestamp,
                     "user": c.user,
                     "insect_name": insect,
-                    "is_beneficial": is_beneficial(insect),
+                    "is_beneficial": False,
                     "count_val": safe_count,
                     "confidence": None,
                     "image_file": c.image_file,
@@ -1059,7 +1026,7 @@ def admin_dashboard():
                 "timestamp": c.timestamp,
                 "user": c.user,
                 "insect_name": "Unknown/Error",
-                "is_beneficial": None, 
+                "is_beneficial": False, 
                 "count_val": c.total_count,
                 "confidence": None,
                 "image_file": c.image_file,
@@ -1202,19 +1169,16 @@ def developer_dashboard():
         u_counts = c_query.all()
             
         for d in u_detections:
-            if d.is_beneficial: u_beneficials += 1
-            else: u_pests += 1
+            u_pests += 1
         
         for c in u_counts:
             data = parse_breakdown(c.breakdown)
             if data:
                 for insect, safe_count in data.items():
-                    if is_beneficial(insect): u_beneficials += safe_count
-                    else: u_pests += safe_count
+                    u_pests += safe_count
 
         color = 'gray'
-        if u_pests == 0 and u_beneficials == 0: color = 'gray'
-        elif u_beneficials > u_pests: color = 'green'
+        if u_pests == 0: color = 'gray'
         else:
             if u_pests > 15: color = 'red'
             elif u_pests > 5: color = 'orange'
@@ -1234,7 +1198,7 @@ def developer_dashboard():
     for d in detections:
         all_logs.append({
             "type": "Identify", "id": d.id, "timestamp": d.timestamp, "user": d.user,
-            "insect_name": d.insect_name, "is_beneficial": d.is_beneficial, "count_val": 1,
+            "insect_name": d.insect_name, "is_beneficial": False, "count_val": 1,
             "confidence": d.confidence, "image_file": d.image_file, "raw_obj": d
         })
         
@@ -1244,13 +1208,13 @@ def developer_dashboard():
             for insect, safe_count in data.items():
                 all_logs.append({
                     "type": "Count", "id": c.id, "timestamp": c.timestamp, "user": c.user,
-                    "insect_name": insect, "is_beneficial": is_beneficial(insect),
+                    "insect_name": insect, "is_beneficial": False,
                     "count_val": safe_count, "confidence": None, "image_file": c.image_file, "raw_obj": c
                 })
         else:
             all_logs.append({
                 "type": "Count", "id": c.id, "timestamp": c.timestamp, "user": c.user,
-                "insect_name": "Mixed Count", "is_beneficial": None, 
+                "insect_name": "Mixed Count", "is_beneficial": False, 
                 "count_val": c.total_count, "confidence": None, "image_file": c.image_file, "raw_obj": c
             })
 
@@ -1370,7 +1334,7 @@ def export_data():
     
     # Detections
     for d in detections:
-        status = 'Beneficial' if d.is_beneficial else 'Pest'
+        status = 'Pest'
         cw.writerow(['Identify', d.id, d.timestamp, d.user.full_name, d.user.municipality, d.insect_name, 1, status])
         
     # Counts
@@ -1378,7 +1342,7 @@ def export_data():
         data = parse_breakdown(c.breakdown)
         if data:
             for name, clean_val in data.items():
-                s = 'Beneficial' if is_beneficial(name) else 'Pest'
+                s = 'Pest'
                 cw.writerow(['Count', c.id, c.timestamp, c.user.full_name, c.user.municipality, name, clean_val, s])
             continue
         

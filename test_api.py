@@ -123,12 +123,12 @@ def test_flow():
     status, text = post_multipart(f"{BASE_URL}/api/sync/identify", fields, files)
     print(f"Identify (Pest): {status} - {text}")
 
-    # 4. Test Identify (Beneficial)
-    print("Testing Sync Identify (Beneficial)...")
-    files = {'image': ('beneficial.jpg', img_data, 'image/jpeg')}
-    fields = {'user_id': user_id, 'insect_name': 'Pygmy Grasshopper', 'confidence': 0.88}
+    # 4. Test Identify (Second Pest)
+    print("Testing Sync Identify (Second Pest)...")
+    files = {'image': ('second_pest.jpg', img_data, 'image/jpeg')}
+    fields = {'user_id': user_id, 'insect_name': 'Leafhopper', 'confidence': 0.88}
     status, text = post_multipart(f"{BASE_URL}/api/sync/identify", fields, files)
-    print(f"Identify (Beneficial): {status} - {text}")
+    print(f"Identify (Second Pest): {status} - {text}")
 
     # 5. Test Count
     print("Testing Sync Count...")
@@ -136,7 +136,7 @@ def test_flow():
     fields = {
         'user_id': user_id, 
         'total_count': 15, 
-        'breakdown': '{"Aphids": 10, "Pygmy Grasshopper": 5}'
+        'breakdown': '{"Aphids": 10, "Leafhopper": 5}'
     }
     status, text = post_multipart(f"{BASE_URL}/api/sync/count", fields, files)
     print(f"Count: {status} - {text}")

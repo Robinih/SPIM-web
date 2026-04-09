@@ -116,13 +116,6 @@
                         </p>
                         <div class="kpi-value" style="color: var(--color-pest);">{{ pests }}</div>
                     </div>
-                    <div class="vr bg-secondary opacity-25 d-none d-md-block" style="height: 40px;"></div>
-                    <hr class="w-100 d-block d-md-none my-2" style="opacity: 0.15;">
-                    <div class="text-center w-100">
-                        <p class="kpi-label mb-0"
-                            style="text-transform: uppercase; letter-spacing: 1px; font-size: 0.65rem;">Beneficials</p>
-                        <div class="kpi-value" style="color: var(--color-beneficial);">{{ beneficials }}</div>
-                    </div>
                 </div>
 
                 <!-- Insect Breakdown List -->
@@ -237,11 +230,7 @@
                             <img src="{{ url_for('static', filename='uploads/' + item.image) }}" class="w-100 h-100"
                                 style="object-fit: cover;" alt="Insect">
                             <div class="position-absolute top-0 end-0 p-2">
-                                {% if item.status == 'Beneficial' %}
-                                <span class="badge-beneficial" style="font-size: 0.7rem;">Beneficial</span>
-                                {% else %}
                                 <span class="badge-pest" style="font-size: 0.7rem;">Pest</span>
-                                {% endif %}
                             </div>
                         </div>
                         <div class="p-3">

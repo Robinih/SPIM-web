@@ -10,7 +10,7 @@
 
 <!-- KPI Stat Cards -->
 <div class="row g-3 mb-4 fade-in-up">
-    <div class="col-6 col-md-4">
+    <div class="col-6 col-md-6">
         <div class="stat-card">
             <div class="stat-icon red">
                 <i class="bi bi-bug"></i>
@@ -21,25 +21,14 @@
             </div>
         </div>
     </div>
-    <div class="col-6 col-md-4">
-        <div class="stat-card">
-            <div class="stat-icon green">
-                <i class="bi bi-flower1"></i>
-            </div>
-            <div>
-                <div class="kpi-label">Beneficials</div>
-                <div class="kpi-value">{{ beneficials }}</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-12 col-md-4">
+    <div class="col-6 col-md-6">
         <div class="stat-card">
             <div class="stat-icon blue">
                 <i class="bi bi-clipboard-data-fill"></i>
             </div>
             <div>
                 <div class="kpi-label">Total Detections</div>
-                <div class="kpi-value">{{ pests + beneficials }}</div>
+                <div class="kpi-value">{{ pests }}</div>
             </div>
         </div>
     </div>
@@ -97,11 +86,7 @@
                             <img src="{{ url_for('static', filename='uploads/' + item.image) }}" class="w-100 h-100"
                                 style="object-fit: cover;" alt="Insect">
                             <div class="position-absolute top-0 end-0 p-2">
-                                {% if item.status == 'Beneficial' %}
-                                <span class="badge-beneficial" style="font-size: 0.7rem;">Beneficial</span>
-                                {% else %}
                                 <span class="badge-pest" style="font-size: 0.7rem;">Pest</span>
-                                {% endif %}
                             </div>
                         </div>
                         <div class="p-3">

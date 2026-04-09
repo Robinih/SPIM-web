@@ -27,7 +27,6 @@ class DetectionRecord(db.Model):
     confidence = db.Column(db.Float, nullable=False)
     image_file = db.Column(db.String(255), nullable=False) # Path to image
     timestamp = db.Column(db.DateTime, default=ph_time)
-    is_beneficial = db.Column(db.Boolean, default=False)
 
     user = db.relationship('User', backref=db.backref('detections', lazy=True, cascade="all, delete-orphan"))
 

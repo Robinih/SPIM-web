@@ -270,7 +270,7 @@ D) NETWORK LAYER
    - POST /api/sync/count → Upload counting record
    - POST /api/recommendation → Submit pest management query
    - POST /api/register_device_token → Register FCM token
-   - GET /api/stats/dashboard → Fetch pest/beneficial counts
+   - GET /api/stats/dashboard → Fetch pest counts
    - GET /api/notifications?user_id={id} → Fetch alerts
 
 
@@ -281,7 +281,7 @@ D) NETWORK LAYER
 File Structure:
 - app.py → Main application file with routes
 - models.py → SQLAlchemy database models
-- utils.py → Helper functions (is_beneficial, get_insect_status)
+- utils.py → Helper functions (parse_breakdown)
 - templates/ → HTML templates for web dashboard
 - static/ → CSS, JavaScript, uploaded images
 
@@ -297,7 +297,7 @@ A) DATABASE MODELS (models.py)
    DetectionRecord Model:
    - Stores individual pest identifications
    - Fields: user_id, insect_name, confidence, image_file, 
-     timestamp, is_beneficial
+     timestamp
    
    CountingRecord Model:
    - Stores multi-pest detection results
@@ -341,7 +341,7 @@ C) AUTOMATIC INFESTATION DETECTION
    
    Logic:
    1. Count pests detected TODAY for this user
-      - Query DetectionRecord where is_beneficial=False
+      - Query DetectionRecord
       - Parse CountingRecord breakdown JSON for pest counts
    
    2. Determine severity level:
@@ -510,7 +510,7 @@ C) PEST COUNTING FLOW
       - Removes duplicate overlapping boxes
    8. Group detections by species:
       {"leafbeetle": {"count": 3, "confidence": 0.85}}
-   9. Draw bounding boxes on image (red=pest, green=beneficial)
+   9. Draw bounding boxes on image (red=pest)
    10. Display annotated image + breakdown list
    11. Save to local count_records table with JSON breakdown
    12. Sync uploads to backend when online
@@ -639,7 +639,7 @@ A) PEST DETECTION MODEL (Count Feature)
    Supported Classes (labels.txt):
    - leafbeetle
    - leafhopper
-   - pygmygrasshopper (beneficial)
+   - pygmygrasshopper
    - slantfacedgrasshopper
 
 B) PEST CLASSIFICATION MODEL (Identify Feature)
