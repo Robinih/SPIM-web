@@ -1075,8 +1075,18 @@ def admin_dashboard():
     # 5. Fetch Recommendations
     recommendations = Recommendation.query.order_by(Recommendation.timestamp.desc()).all()
     
-    # 6. Fetch Recent Notifications (for KPI count; history tab handled by JS)
-    recent_notifications = Notification.query.order_by(Notification.timestamp.desc()).all()
+    # 6. Compute grouped alert count (matches history tab grouping)
+    all_notifications = Notification.query.order_by(Notification.timestamp.desc()).limit(1000).all()
+    seen_groups = set()
+    alert_count = 0
+    for n in all_notifications:
+        if n.from_user_id:
+            key = (n.from_user_id, n.message, n.level, n.timestamp.replace(second=0, microsecond=0))
+            if key not in seen_groups:
+                seen_groups.add(key)
+                alert_count += 1
+        else:
+            alert_count += 1
 
     # 7. Extract Unique Filter Data
     unique_insects = sorted(list(set(log['insect_name'] for log in all_logs)))
@@ -1095,7 +1105,7 @@ def admin_dashboard():
                            current_range_display=current_range_display,
                            start_date=request.args.get('start_date', ''),
                            end_date=request.args.get('end_date', ''),
-                           notifications=recent_notifications)
+                           alert_count=alert_count)
 
 @app.route('/developer/dashboard')
 @login_required
@@ -1240,8 +1250,18 @@ def developer_dashboard():
     chart_daily = {'labels': sorted_dates, 'counts': [daily_stats[d] for d in sorted_dates]}
     chart_insects = {'labels': list(insect_stats.keys()), 'counts': list(insect_stats.values())}
     recommendations = Recommendation.query.order_by(Recommendation.timestamp.desc()).all()
-    # Fetch notifications for KPI count (history tab handled by JS)
-    recent_notifications = Notification.query.order_by(Notification.timestamp.desc()).all()
+    # Compute grouped alert count (matches history tab grouping)
+    all_notifications = Notification.query.order_by(Notification.timestamp.desc()).limit(1000).all()
+    seen_groups = set()
+    alert_count = 0
+    for n in all_notifications:
+        if n.from_user_id:
+            key = (n.from_user_id, n.message, n.level, n.timestamp.replace(second=0, microsecond=0))
+            if key not in seen_groups:
+                seen_groups.add(key)
+                alert_count += 1
+        else:
+            alert_count += 1
     unique_insects = sorted(list(set(log['insect_name'] for log in all_logs)))
     unique_barangays = sorted(list(NAIC_BARANGAY_COORDS.keys()))
 
@@ -1253,7 +1273,7 @@ def developer_dashboard():
                            current_range_display=current_range_display,
                            start_date=request.args.get('start_date', ''),
                            end_date=request.args.get('end_date', ''),
-                           notifications=recent_notifications)
+                           alert_count=alert_count)
 
 @app.route('/admin/recommendation/status', methods=['POST'])
 @login_required
