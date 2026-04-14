@@ -24,9 +24,10 @@ app.config['RECOMMENDATION_FOLDER'] = os.path.join(app.root_path, 'static', 'upl
 # CORS configuration for Android app
 CORS(app, supports_credentials=True)
 
-# Session cookie configuration for cross-origin requests (HTTPS deployment)
-app.config['SESSION_COOKIE_SAMESITE'] = 'None'
-app.config['SESSION_COOKIE_SECURE'] = True
+# Session cookie configuration for cross-origin requests
+# NOTE: Set to True/'None' ONLY in production with HTTPS. Chrome blocks Secure=True over HTTP.
+# app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+# app.config['SESSION_COOKIE_SECURE'] = True
 
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
