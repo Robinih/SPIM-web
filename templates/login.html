@@ -12,7 +12,7 @@
 
 <body>
     <div class="auth-wrapper">
-        <!-- Left Branding Panel -->
+        <!-- Left Branding Panel (desktop only) -->
         <div class="col-lg-5 d-none d-lg-flex auth-panel-left">
             <div class="auth-logo">
                 <img src="{{ url_for('static', filename='img/logo.png') }}" alt="SPIM"
@@ -29,13 +29,13 @@
         </div>
 
         <!-- Right Login Form Panel -->
-        <div class="col-lg-7 auth-panel-right">
-            <div class="auth-form-box">
-                <!-- Mobile logo (shown only on small screens) -->
-                <div class="d-lg-none text-center mb-4">
-                    <div class="auth-logo d-inline-flex mb-2"
-                        style="background: rgba(26,122,74,0.1); color: var(--spim-primary);">
-                        <i class="bi bi-bug"></i>
+        <div class="col-lg-7 auth-panel-right" style="background: var(--surface-bg);">
+            <div style="width: 100%; max-width: 440px;">
+                <!-- Logo -->
+                <div class="text-center mb-4">
+                    <div class="mb-2">
+                        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="SPIM"
+                            style="width: 64px; height: 64px; object-fit: contain;">
                     </div>
                     <h5 class="fw-bold" style="color: var(--spim-primary);">SPIM Monitor</h5>
                 </div>
@@ -51,37 +51,47 @@
                 {% endif %}
                 {% endwith %}
 
-                <h2 class="auth-form-title">Welcome back</h2>
-                <p class="auth-form-sub">Sign in to your account to continue</p>
-
-                <form method="POST">
-                    <div class="auth-input-group">
-                        <label for="username">Username</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-person"></i></span>
-                            <input type="text" class="form-control" id="username" name="username"
-                                placeholder="Enter your username" required>
+                <!-- Login Card -->
+                <div class="spim-card" style="backdrop-filter: blur(12px);">
+                    <div class="spim-card-header" style="border-bottom-color: var(--card-border);">
+                        <div>
+                            <h5 class="spim-card-title mb-0">Welcome back</h5>
+                            <small style="color: var(--text-muted);">Sign in to your account to continue</small>
                         </div>
                     </div>
-                    <div class="auth-input-group">
-                        <label for="password">Password</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                            <input type="password" class="form-control" id="password" name="password"
-                                placeholder="Enter your password" required>
-                            <button class="btn btn-outline-secondary" type="button"
-                                onclick="togglePassword('password', this)">
-                                <i class="bi bi-eye"></i>
+                    <div class="spim-card-body">
+                        <form method="POST">
+                            <div class="mb-3">
+                                <label for="username" class="form-label fw-semibold"
+                                    style="font-size: 0.8125rem;">Username</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                    <input type="text" class="form-control" id="username" name="username"
+                                        placeholder="Enter your username" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label fw-semibold"
+                                    style="font-size: 0.8125rem;">Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                                    <input type="password" class="form-control" id="password" name="password"
+                                        placeholder="Enter your password" required>
+                                    <button class="btn btn-outline-secondary" type="button"
+                                        onclick="togglePassword('password', this)">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-spim w-100 mt-2" style="padding: 0.7rem;">
+                                <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
                             </button>
-                        </div>
+                        </form>
                     </div>
+                </div>
 
-                    <button type="submit" class="btn btn-spim w-100 mt-3" style="padding: 0.7rem;">
-                        <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
-                    </button>
-                </form>
-
-                <p class="text-center mt-4" style="font-size: 0.875rem; color: var(--text-muted);">
+                <p class="text-center mt-3" style="font-size: 0.875rem; color: var(--text-muted);">
                     Don't have an account?
                     <a href="{{ url_for('register') }}" style="color: var(--spim-primary); font-weight: 600;">Register
                         here</a>

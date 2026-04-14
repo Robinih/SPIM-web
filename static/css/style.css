@@ -917,9 +917,11 @@ body {
 /* =================================================================
    MOBILE RESPONSIVE - DASHBOARD
 ================================================================= */
+
+/* ---------- Tablet & below (≤991px) ---------- */
 @media (max-width: 991.98px) {
 
-    /* Tab labels: hide text on very small, show icon only */
+    /* Tab labels: hide text, show icon only */
     .spim-tab-btn .tab-text {
         display: none;
     }
@@ -927,40 +929,61 @@ body {
     .spim-tabs {
         gap: 0;
     }
+
+    /* Heatmap timeframe button group: allow wrapping */
+    .btn-group {
+        flex-wrap: wrap;
+    }
+
+    /* Custom date form: stack vertically */
+    #customDateInputs .d-flex {
+        flex-direction: column;
+    }
+
+    #customDateInputs .d-flex .form-control-sm {
+        width: 100%;
+    }
+
+    /* Analytics charts: stack full-width */
+    .tab-pane#analytics .col-md-8,
+    .tab-pane#analytics .col-md-4 {
+        width: 100%;
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    /* Analytics chart height reduction */
+    .tab-pane#analytics .spim-card-body[style*="height: 400px"] {
+        height: 250px !important;
+    }
+
+    /* Alerts tab: stack columns full-width */
+    .tab-pane#alerts .col-md-6,
+    .tab-pane#alerts .col-md-4 {
+        width: 100%;
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
 }
 
+/* ---------- Re-show tab text on medium screens ---------- */
 @media (min-width: 640px) {
     .spim-tab-btn .tab-text {
         display: inline;
     }
 }
 
-@media (max-width: 575.98px) {
-    .stat-card {
-        padding: 1rem;
-    }
+/* ---------- Phone landscape & below (≤767px) ---------- */
+@media (max-width: 767.98px) {
 
-    .kpi-value {
-        font-size: 1.5rem;
-    }
-
+    /* Map: reduce height */
     .map-responsive {
         height: 50vh !important;
         min-height: 300px;
     }
 
-    .spim-card-body {
-        padding: 0.875rem;
-    }
-}
-
-/* Full-page map responsive (from v1) */
-@media (max-width: 768px) {
-    .map-responsive {
-        height: 50vh !important;
-        min-height: 400px;
-    }
-
+    /* Map legend: make static below map */
     .map-legend-responsive {
         position: static;
         width: 100%;
@@ -969,7 +992,7 @@ body {
         border: 1px solid var(--card-border);
     }
 
-    /* Scrollable Tabs */
+    /* Scrollable Nav Tabs (legacy) */
     .nav-tabs-scroll {
         flex-wrap: nowrap;
         overflow-x: auto;
@@ -980,6 +1003,168 @@ body {
 
     .nav-tabs-scroll .nav-link {
         white-space: nowrap;
+    }
+
+    /* Table: smooth horizontal scroll */
+    .table-responsive {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Table cells: minimum widths to prevent squish */
+    .spim-table thead th {
+        min-width: 80px;
+    }
+
+    .spim-table thead th:first-child {
+        min-width: 40px;
+    }
+
+    /* Touch targets: larger checkboxes */
+    .spim-table input[type="checkbox"],
+    .alert-item input[type="checkbox"],
+    input#selectAllLogs,
+    input#selectAllFarmers,
+    input#selectAllNotifications {
+        min-width: 20px;
+        min-height: 20px;
+        cursor: pointer;
+    }
+
+    /* Touch targets: ensure buttons have min tap area */
+    .btn-sm {
+        min-height: 38px;
+        padding: 0.4rem 0.75rem;
+    }
+
+    /* Chart containers on farmer dashboard: stack & reduce height */
+    .row .col-md-8 .spim-card-body[style*="height: 300px"],
+    .row .col-md-8 .spim-card-body[style*="height: 400px"] {
+        height: 220px !important;
+    }
+
+    .row .col-md-4 .spim-card-body[style*="height: 300px"],
+    .row .col-md-4 .spim-card-body[style*="height: 400px"] {
+        height: 220px !important;
+    }
+
+    /* Farmer hero banner: reduce padding */
+    .page-header[style*="padding: 2rem"] {
+        padding: 1.25rem 1rem !important;
+    }
+
+    /* Heatmap header: stack title and controls */
+    .tab-pane#heatmap>.d-flex.justify-content-between {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+
+    .tab-pane#heatmap>.d-flex.justify-content-between>.d-flex.flex-column {
+        align-items: flex-start !important;
+        width: 100%;
+    }
+
+    /* Report modal: stack image and details */
+    #reportModal .modal-dialog {
+        margin: 0.5rem;
+    }
+
+    #reportModal .row .col-md-6 {
+        width: 100%;
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    /* Alert filter row: stack vertically */
+    .spim-card-body .row.g-2 .col-md-4 {
+        width: 100%;
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    /* Export form: stack date inputs and button */
+    .tab-pane#export .row.g-3 .col-md-4 {
+        width: 100%;
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    /* Spim card header: allow wrapping on small screens */
+    .spim-card-header {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+}
+
+/* ---------- Phone portrait (≤575px) ---------- */
+@media (max-width: 575.98px) {
+
+    .stat-card {
+        padding: 0.875rem;
+    }
+
+    /* Prevent KPI value overflow */
+    .kpi-value {
+        font-size: 1.375rem;
+        word-break: break-word;
+    }
+
+    .kpi-label {
+        font-size: 0.65rem;
+    }
+
+    .stat-icon {
+        width: 42px;
+        height: 42px;
+        font-size: 1rem;
+    }
+
+    .map-responsive {
+        height: 45vh !important;
+        min-height: 260px;
+    }
+
+    .spim-card-body {
+        padding: 0.75rem;
+    }
+
+    /* Tab pane padding reduction */
+    .tab-content>.tab-pane {
+        padding: 0.875rem;
+    }
+
+    /* Responsive images in tables */
+    .spim-table .img-thumbnail {
+        width: 40px !important;
+        height: 40px !important;
+    }
+
+    /* Modals: full-width on phones */
+    .modal-dialog {
+        margin: 0.5rem;
+        max-width: calc(100% - 1rem);
+    }
+
+    /* Filter row within tabs: stack search & selects */
+    .tab-pane .row.g-2>[class*="col-md"] {
+        width: 100%;
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    /* Farmer view: page header text */
+    .page-header-title,
+    h4.fw-bold {
+        font-size: 1.1rem;
+    }
+
+    /* Ensure body doesn't overflow horizontally */
+    body {
+        overflow-x: hidden;
+    }
+
+    /* Activity cards: ensure images scale */
+    .activity-card-img {
+        height: 120px;
     }
 }
 
@@ -995,7 +1180,34 @@ body {
     }
 
     .auth-panel-right {
-        padding: 1.75rem 1.25rem;
+        padding: 1.5rem 1rem;
+        min-height: 100vh;
+        align-items: flex-start;
+        padding-top: 2.5rem;
+    }
+
+    .auth-form-box {
+        max-width: 100%;
+    }
+
+    .auth-form-title {
+        font-size: 1.25rem;
+    }
+
+    /* Register page: ensure form fields stack on small screens */
+    .auth-panel-right .row .col-md-6 {
+        width: 100%;
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    /* Register card: tighter padding */
+    .auth-panel-right .spim-card-body {
+        padding: 1rem;
+    }
+
+    .auth-panel-right .spim-card-header {
+        padding: 0.875rem 1rem;
     }
 }
 
