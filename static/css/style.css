@@ -9,33 +9,34 @@
 :root {
     --spim-font: 'Inter', sans-serif;
 
-    /* Brand Colors */
-    --spim-primary: #1a7a4a;
-    --spim-primary-dark: #145e38;
-    --spim-primary-light: #d1fae5;
+    /* Brand Colors — harmonized with landing page */
+    --spim-primary: #166534;
+    --spim-primary-dark: #14532d;
+    --spim-primary-light: #ECFDF5;
+    --spim-primary-mid: #16A34A;
     --spim-accent: #f59e0b;
     --spim-accent-dark: #b45309;
 
     /* Sidebar */
-    --sidebar-bg: #0d1f18;
+    --sidebar-bg: #0C1F17;
     --sidebar-width: 260px;
-    --sidebar-text: #a7c5a9;
+    --sidebar-text: #94A3B8;
     --sidebar-text-hover: #ffffff;
-    --sidebar-active-bg: rgba(26, 122, 74, 0.25);
-    --sidebar-active-text: #6ee7a0;
-    --sidebar-border: rgba(255, 255, 255, 0.07);
+    --sidebar-active-bg: rgba(22, 101, 52, 0.2);
+    --sidebar-active-text: #4ADE80;
+    --sidebar-border: rgba(255, 255, 255, 0.06);
 
-    /* Surface */
-    --surface-bg: #f0f4f2;
+    /* Surface — matches landing page white background */
+    --surface-bg: #F9FAFB;
     --card-bg: #ffffff;
-    --card-border: #e5ede8;
-    --card-shadow: 0 1px 4px rgba(0, 0, 0, 0.07), 0 4px 16px rgba(0, 0, 0, 0.05);
-    --card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.12), 0 8px 24px rgba(0, 0, 0, 0.08);
+    --card-border: #D1D5DB;
+    --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.03);
+    --card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.05);
 
-    /* Text */
-    --text-primary: #0f2418;
-    --text-secondary: #4b6155;
-    --text-muted: #7a9585;
+    /* Text — matches landing page text palette */
+    --text-primary: #111827;
+    --text-secondary: #374151;
+    --text-muted: #6B7280;
 
     /* Semantic */
     --color-pest: #dc2626;
@@ -48,8 +49,8 @@
 
     /* Layout */
     --topbar-height: 0px;
-    --border-radius: 10px;
-    --border-radius-sm: 6px;
+    --border-radius: 12px;
+    --border-radius-sm: 8px;
     --border-radius-lg: 16px;
     --transition: 0.2s ease;
 }
@@ -822,7 +823,7 @@ body {
 }
 
 .auth-panel-left {
-    background: linear-gradient(160deg, #0d3320 0%, var(--spim-primary) 60%, #22c55e 100%);
+    background: linear-gradient(160deg, #0C1F17 0%, var(--spim-primary) 60%, #16A34A 100%);
     padding: 3rem;
     display: flex;
     flex-direction: column;

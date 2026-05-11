@@ -64,3 +64,28 @@ class Recommendation(db.Model):
     timestamp = db.Column(db.DateTime, default=ph_time)
 
     user = db.relationship('User', backref=db.backref('recommendations', lazy=True, cascade="all, delete-orphan"))
+
+class SystemConfig(db.Model):
+    """Key-value store for admin-configurable system settings."""
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(100), unique=True, nullable=False)
+    value = db.Column(db.String(255), nullable=False)
+    updated_at = db.Column(db.DateTime, default=ph_time, onupdate=ph_time)
+
+    @staticmethod
+    def get(key, default=None):
+        """Get a config value by key, returning default if not found."""
+        config = SystemConfig.query.filter_by(key=key).first()
+        return config.value if config else default
+
+    @staticmethod
+    def set(key, value):
+        """Set a config value, creating or updating as needed."""
+        config = SystemConfig.query.filter_by(key=key).first()
+        if config:
+            config.value = str(value)
+        else:
+            config = SystemConfig(key=key, value=str(value))
+            db.session.add(config)
+        db.session.commit()
+

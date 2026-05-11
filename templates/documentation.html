@@ -1,0 +1,148 @@
+{% extends "public_base.html" %}
+
+{% block content %}
+<div class="container">
+    <!-- ===== DOC HEADER ===== -->
+    <div class="doc-header">
+        <h1>Documentation</h1>
+        <p>Complete guide for using the SPIM app — from account setup to scanning your fields.</p>
+        <a href="{{ url_for('download_latest') }}" class="doc-download-btn">
+            <i class="bi bi-download"></i> Download Latest APK
+        </a>
+    </div>
+
+    <div class="doc-content-wrapper">
+        <!-- Getting Started -->
+        <div class="doc-section">
+            <h3><i class="bi bi-rocket-takeoff"></i> Getting Started</h3>
+            <p>Follow these steps to create your account and start using the SPIM mobile application to detect and track agricultural pests.</p>
+            
+            <div class="doc-step">
+                <div class="doc-step-number">1</div>
+                <div>
+                    <h5>Download & Install</h5>
+                    <p>Download the latest <code>.apk</code> file using the button above or from our <a href="{{ url_for('download_latest') }}">releases page</a>. Install it on your Android device. You may need to enable "Install from unknown sources" in your device settings.</p>
+                </div>
+            </div>
+            <div class="doc-step">
+                <div class="doc-step-number">2</div>
+                <div>
+                    <h5>Create an Account</h5>
+                    <p>Open the app, tap <strong>Register</strong>, and fill in your details including your municipality and barangay. This helps us generate accurate heatmaps for pest monitoring in your area.</p>
+                </div>
+            </div>
+            <div class="doc-step">
+                <div class="doc-step-number">3</div>
+                <div>
+                    <h5>Log In & Sync</h5>
+                    <p>Log in with your credentials. Your app will automatically fetch the latest data, models, and notification configurations from the cloud server.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scan Methods -->
+        <div class="doc-section">
+            <h3><i class="bi bi-camera"></i> Scan Methods & Guidelines</h3>
+            <p>The Scan feature uses advanced <strong>YOLOv8s</strong> AI models running on-device to detect and count <strong>11 different families</strong> of rice pests.</p>
+            
+            <h4>How to Scan</h4>
+            <ul>
+                <li>Open the app and tap <strong>Identify</strong> (single insect) or <strong>Count</strong> (multiple insects / sticky trap).</li>
+                <li>Use the camera to capture a clear image, or select one from your gallery.</li>
+                <li>Review the detection boxes and confidence scores before saving the result.</li>
+            </ul>
+
+            <h4>📐 Tips for Accurate Results</h4>
+            <ul>
+                <li><strong>Lighting:</strong> Ensure the subject is well-lit. Avoid harsh shadows or glare on sticky traps.</li>
+                <li><strong>Distance:</strong> Keep the camera 15–30 cm away for optimal focus on smaller insects.</li>
+                <li><strong>Angle:</strong> Hold the camera parallel (flat) to the surface being scanned.</li>
+                <li><strong>Focus:</strong> Tap your screen to lock focus directly on the pest before capturing.</li>
+            </ul>
+        </div>
+
+        <!-- Dashboard -->
+        <div class="doc-section">
+            <h3><i class="bi bi-grid-1x2"></i> Dashboard & Monitoring</h3>
+            <p>The web dashboard provides a comprehensive view of pest activity across different regions.</p>
+            
+            <ul>
+                <li><strong>Heatmap:</strong> A visual map of pest density by barangay. Colors range from <strong style="color:#EAB308;">Yellow</strong> (Low) → <strong style="color:#F97316;">Orange</strong> (Medium) → <strong style="color:#EF4444;">Red</strong> (High) based on configurable thresholds.</li>
+                <li><strong>Analytics:</strong> Interactive charts showing daily pest detection trends and breakdowns by insect species.</li>
+                <li><strong>Automated Alerts:</strong> Push notifications are triggered automatically when pest counts exceed thresholds. Alert levels: Low, Medium, and High severity.</li>
+            </ul>
+        </div>
+
+        <!-- Pest Library -->
+        <div class="doc-section">
+            <h3><i class="bi bi-bug"></i> Pest Library</h3>
+            <p>The app includes a built-in reference library with all <strong>11 tracked pest families</strong>. Each entry includes descriptions, life cycle information, damage caused, and three categories of control methods:</p>
+            
+            <div style="margin: 1.25rem 0;">
+                <span class="control-tag bio">Biological</span> — Natural predators and parasitoids<br style="margin-bottom: 0.35rem;">
+                <span class="control-tag cultural" style="margin-top: 0.35rem;">Cultural</span> — Field management practices<br>
+                <span class="control-tag chemical" style="margin-top: 0.35rem;">Chemical</span> — Pesticide-based interventions
+            </div>
+
+            <table class="doc-table">
+                <thead>
+                    <tr>
+                        <th>Common Name</th>
+                        <th>Family</th>
+                        <th>Local Name</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td class="role-name">Stem Borers / Moths</td><td>Crambidae</td><td>Aksip / Kuwong</td></tr>
+                    <tr><td class="role-name">Armyworms</td><td>Noctuidae</td><td>Harabas / Uod militar</td></tr>
+                    <tr><td class="role-name">Planthoppers</td><td>Delphacidae</td><td>Ngusong kabayo (Brown)</td></tr>
+                    <tr><td class="role-name">Leafhoppers</td><td>Cicadellidae</td><td>Ngusong kabayo (Green)</td></tr>
+                    <tr><td class="role-name">Skippers</td><td>Hesperiidae</td><td>Paruparo / Kinikiling</td></tr>
+                    <tr><td class="role-name">Golden Apple Snail (Eggs)</td><td>Ampullariidae</td><td>Itlog ng Kuhol</td></tr>
+                    <tr><td class="role-name">Rice Black Bug</td><td>Pentatomidae</td><td>Itim na atangya</td></tr>
+                    <tr><td class="role-name">Slant-faced Grasshopper</td><td>Pyrgomorphidae</td><td>Tipaklong</td></tr>
+                    <tr><td class="role-name">Leaf Beetles</td><td>Chrysomelidae</td><td>Salagubang / Hispa</td></tr>
+                    <tr><td class="role-name">Locusts / Grasshoppers</td><td>Acrididae</td><td>Balang</td></tr>
+                    <tr><td class="role-name">Horned Coreid Bugs</td><td>Coreidae</td><td>Atangya</td></tr>
+                </tbody>
+            </table>
+            <p style="margin-top: 1rem;">All pest data is sourced from official agricultural research institutions including PhilRice and IRRI.</p>
+        </div>
+
+        <!-- Roles -->
+        <div class="doc-section">
+            <h3><i class="bi bi-shield-lock"></i> Roles & Permissions</h3>
+            <p>The SPIM platform supports different user roles with specific permissions:</p>
+            
+            <table class="doc-table">
+                <thead>
+                    <tr>
+                        <th>Role</th>
+                        <th>Permissions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="role-name">Farmer</td>
+                        <td>Use the mobile app to scan & identify insects, view personal detection records, access the pest library, and receive municipal push alerts.</td>
+                    </tr>
+                    <tr>
+                        <td class="role-name">Admin</td>
+                        <td>Access the web dashboard heatmap, view aggregated municipal statistics, manage farmer accounts, and configure alert thresholds.</td>
+                    </tr>
+                    <tr>
+                        <td class="role-name">Developer</td>
+                        <td>Access advanced debug views, manage all user accounts, configure system thresholds, and push application updates.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Need Help -->
+        <div class="doc-section" style="text-align: center;">
+            <h3 style="justify-content: center;"><i class="bi bi-question-circle"></i> Need More Help?</h3>
+            <p>If you encounter issues not covered here, check the <strong>About</strong> section in the mobile app for contact information, or visit the <a href="{{ url_for('index') }}#about">About section</a> on the homepage.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

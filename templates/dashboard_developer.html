@@ -134,17 +134,17 @@
                 <div class="d-flex align-items-center mb-1">
                     <span
                         style="display:inline-block; width: 15px; height: 15px; background: red; border-radius: 50%; margin-right: 8px;"></span>
-                    <small>High (>15 Pests)</small>
+                    <small>High (&ge;{{ threshold_high }} Pests)</small>
                 </div>
                 <div class="d-flex align-items-center mb-1">
                     <span
                         style="display:inline-block; width: 15px; height: 15px; background: #ff9800; border-radius: 50%; margin-right: 8px;"></span>
-                    <small>Medium (6-15 Pests)</small>
+                    <small>Medium ({{ threshold_medium }}-{{ threshold_high - 1 }} Pests)</small>
                 </div>
                 <div class="d-flex align-items-center mb-1">
                     <span
                         style="display:inline-block; width: 15px; height: 15px; background: #fff176; border-radius: 50%; margin-right: 8px;"></span>
-                    <small>Low (1-5 Pests)</small>
+                    <small>Low ({{ threshold_low }}-{{ threshold_medium - 1 }} Pests)</small>
                 </div>
                 <div class="d-flex align-items-center">
                     <span
@@ -886,7 +886,7 @@
 
     function initMap() {
         if (mapInitialized) return;
-        map = L.map('map').setView([14.28, 120.92], 12);
+        map = L.map('map').setView([14.3196, 120.7635], 14);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);

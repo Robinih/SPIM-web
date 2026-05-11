@@ -1,0 +1,329 @@
+{% extends "public_base.html" %}
+
+{% block content %}
+<div class="container">
+    <!-- ===== HERO ===== -->
+    <section class="hero-section">
+        <div class="hero-badge">
+            <i class="bi bi-cpu"></i> AI-Powered · Built for Filipino Agriculture
+        </div>
+        <h1 class="hero-title">
+            Identify pests.<br>
+            <span class="text-accent">Protect your harvest.</span>
+        </h1>
+        <p class="hero-subtitle">
+            Point your camera. Get instant AI detection. SPIM uses YOLOv8 deep learning to identify 11 pest species, track infestations across your municipality, and provide biological, cultural, and chemical control recommendations — all in real-time.
+        </p>
+        
+        <div class="hero-buttons">
+            <a href="{{ url_for('download_latest') }}" class="btn-hero-primary">
+                <i class="bi bi-download me-2"></i>Download App
+            </a>
+            <a href="{{ url_for('documentation') }}" class="btn-hero-secondary">
+                Read Documentation <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+
+        <div class="stats-strip">
+            <div class="stat-item">
+                <div class="stat-value">{{ total_farmers }}</div>
+                <div class="stat-label">Farmers Registered</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">{{ total_pests }}+</div>
+                <div class="stat-label">Pests Detected</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">11</div>
+                <div class="stat-label">Species Tracked</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== FEATURES ===== -->
+    <section id="features" class="landing-section">
+        <div class="text-center mb-5">
+            <span class="section-label">Features</span>
+            <h2 class="section-heading">Everything you need to monitor pests.</h2>
+            <p class="section-desc centered">From instant AI scanning to municipal-wide heatmaps, SPIM gives farmers and administrators the tools to act fast.</p>
+        </div>
+        <div class="row g-3 mt-2">
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon-wrap"><i class="bi bi-camera"></i></div>
+                    <h4>AI Image Scanning</h4>
+                    <p>Point your camera at the insect. SPIM's YOLOv8s model instantly detects and classifies the species with high accuracy — even on sticky traps.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon-wrap"><i class="bi bi-map"></i></div>
+                    <h4>Live Heatmaps</h4>
+                    <p>See pest density across your municipality in real-time. Color-coded overlays show exactly which barangays are experiencing outbreaks.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon-wrap"><i class="bi bi-bell"></i></div>
+                    <h4>Push Notifications</h4>
+                    <p>Receive automated alerts the moment pest thresholds are crossed in your area. Powered by Firebase Cloud Messaging.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon-wrap"><i class="bi bi-book"></i></div>
+                    <h4>Pest Library</h4>
+                    <p>Access detailed information on all 11 tracked pest species — including life cycles, damage descriptions, and recommended control methods.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon-wrap"><i class="bi bi-bar-chart"></i></div>
+                    <h4>Analytics Dashboard</h4>
+                    <p>View daily trends, species breakdowns, and historical data through interactive charts on the web dashboard.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon-wrap"><i class="bi bi-cloud-upload"></i></div>
+                    <h4>Cloud Sync</h4>
+                    <p>Every scan and detection is automatically synced to the central server, building a municipal-wide dataset for smarter monitoring.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== HOW IT WORKS ===== -->
+    <section id="how-it-works" class="landing-section">
+        <div class="row align-items-center">
+            <div class="col-lg-6 mb-5 mb-lg-0">
+                <span class="section-label">How It Works</span>
+                <h2 class="section-heading">From scan to safe,<br>in four steps.</h2>
+                <p class="section-desc mb-4">The entire workflow takes less than a minute — from capturing an image to viewing your contribution on the municipal heatmap.</p>
+                
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <div>
+                        <h4>Capture the pest</h4>
+                        <p>Open the app and use the camera or gallery. Our AI model processes the image on your device in seconds.</p>
+                    </div>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <div>
+                        <h4>Get instant results</h4>
+                        <p>SPIM identifies the species, shows confidence scores, and highlights detections with bounding boxes.</p>
+                    </div>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <div>
+                        <h4>Sync to the cloud</h4>
+                        <p>Your detection is automatically uploaded and geo-tagged to your barangay, building a live map of pest activity.</p>
+                    </div>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">4</div>
+                    <div>
+                        <h4>Monitor & respond</h4>
+                        <p>Administrators see heatmaps and trends. Farmers get push alerts when thresholds are crossed nearby.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5 offset-lg-1">
+                <div class="illustration-box">
+                    <i class="bi bi-phone"></i>
+                    <span>App preview coming soon</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== PEST REFERENCE ===== -->
+    <section id="pests" class="landing-section">
+        <div class="text-center mb-4">
+            <span class="section-label">Pest Reference</span>
+            <h2 class="section-heading">11 species, identified in real-time.</h2>
+            <p class="section-desc centered">Each pest is classified by family with biological, cultural, and chemical control methods sourced from official agricultural research.</p>
+        </div>
+        <div class="pest-grid">
+            <div class="pest-card">
+                <img src="{{ url_for('static', filename='img/pests/crambidae.jpg') }}" alt="Stem Borers" class="pest-card-img">
+                <div class="pest-card-body">
+                    <h5>Stem Borers / Moths</h5>
+                    <div class="pest-family">Crambidae</div>
+                    <div class="pest-tagalog">Aksip / Kuwong</div>
+                    <div class="control-methods">
+                        <span class="control-tag bio">Biological</span>
+                        <span class="control-tag cultural">Cultural</span>
+                        <span class="control-tag chemical">Chemical</span>
+                    </div>
+                </div>
+            </div>
+            <div class="pest-card">
+                <img src="{{ url_for('static', filename='img/pests/noctuidae.jpg') }}" alt="Armyworms" class="pest-card-img">
+                <div class="pest-card-body">
+                    <h5>Armyworms</h5>
+                    <div class="pest-family">Noctuidae</div>
+                    <div class="pest-tagalog">Harabas / Uod militar</div>
+                    <div class="control-methods">
+                        <span class="control-tag bio">Biological</span>
+                        <span class="control-tag cultural">Cultural</span>
+                        <span class="control-tag chemical">Chemical</span>
+                    </div>
+                </div>
+            </div>
+            <div class="pest-card">
+                <img src="{{ url_for('static', filename='img/pests/delphacidae.jpg') }}" alt="Planthoppers" class="pest-card-img">
+                <div class="pest-card-body">
+                    <h5>Planthoppers</h5>
+                    <div class="pest-family">Delphacidae</div>
+                    <div class="pest-tagalog">Ngusong kabayo - Brown</div>
+                    <div class="control-methods">
+                        <span class="control-tag bio">Biological</span>
+                        <span class="control-tag cultural">Cultural</span>
+                        <span class="control-tag chemical">Chemical</span>
+                    </div>
+                </div>
+            </div>
+            <div class="pest-card">
+                <img src="{{ url_for('static', filename='img/pests/cicadellidae.jpg') }}" alt="Leafhoppers" class="pest-card-img">
+                <div class="pest-card-body">
+                    <h5>Leafhoppers</h5>
+                    <div class="pest-family">Cicadellidae</div>
+                    <div class="pest-tagalog">Ngusong kabayo - Green</div>
+                    <div class="control-methods">
+                        <span class="control-tag bio">Biological</span>
+                        <span class="control-tag cultural">Cultural</span>
+                        <span class="control-tag chemical">Chemical</span>
+                    </div>
+                </div>
+            </div>
+            <div class="pest-card">
+                <img src="{{ url_for('static', filename='img/pests/hesperiidae.jpg') }}" alt="Skippers" class="pest-card-img">
+                <div class="pest-card-body">
+                    <h5>Skippers</h5>
+                    <div class="pest-family">Hesperiidae</div>
+                    <div class="pest-tagalog">Paruparo / Kinikiling</div>
+                    <div class="control-methods">
+                        <span class="control-tag bio">Biological</span>
+                        <span class="control-tag cultural">Cultural</span>
+                        <span class="control-tag chemical">Chemical</span>
+                    </div>
+                </div>
+            </div>
+            <div class="pest-card">
+                <img src="{{ url_for('static', filename='img/pests/ampullariidae.png') }}" alt="Golden Apple Snail Eggs" class="pest-card-img">
+                <div class="pest-card-body">
+                    <h5>Golden Apple Snail (Eggs)</h5>
+                    <div class="pest-family">Ampullariidae</div>
+                    <div class="pest-tagalog">Itlog ng Kuhol</div>
+                    <div class="control-methods">
+                        <span class="control-tag bio">Biological</span>
+                        <span class="control-tag cultural">Cultural</span>
+                        <span class="control-tag chemical">Chemical</span>
+                    </div>
+                </div>
+            </div>
+            <div class="pest-card">
+                <img src="{{ url_for('static', filename='img/pests/pentatomidae.jpg') }}" alt="Rice Black Bug" class="pest-card-img">
+                <div class="pest-card-body">
+                    <h5>Rice Black Bug</h5>
+                    <div class="pest-family">Pentatomidae</div>
+                    <div class="pest-tagalog">Itim na atangya</div>
+                    <div class="control-methods">
+                        <span class="control-tag bio">Biological</span>
+                        <span class="control-tag cultural">Cultural</span>
+                        <span class="control-tag chemical">Chemical</span>
+                    </div>
+                </div>
+            </div>
+            <div class="pest-card">
+                <img src="{{ url_for('static', filename='img/pests/pyrgomorphidae.webp') }}" alt="Slant-faced Grasshopper" class="pest-card-img">
+                <div class="pest-card-body">
+                    <h5>Slant-faced Grasshopper</h5>
+                    <div class="pest-family">Pyrgomorphidae</div>
+                    <div class="pest-tagalog">Tipaklong</div>
+                    <div class="control-methods">
+                        <span class="control-tag bio">Biological</span>
+                        <span class="control-tag cultural">Cultural</span>
+                        <span class="control-tag chemical">Chemical</span>
+                    </div>
+                </div>
+            </div>
+            <div class="pest-card">
+                <img src="{{ url_for('static', filename='img/pests/chrysomelidae.jpg') }}" alt="Leaf Beetles" class="pest-card-img">
+                <div class="pest-card-body">
+                    <h5>Leaf Beetles</h5>
+                    <div class="pest-family">Chrysomelidae</div>
+                    <div class="pest-tagalog">Salagubang / Hispa</div>
+                    <div class="control-methods">
+                        <span class="control-tag bio">Biological</span>
+                        <span class="control-tag cultural">Cultural</span>
+                        <span class="control-tag chemical">Chemical</span>
+                    </div>
+                </div>
+            </div>
+            <div class="pest-card">
+                <img src="{{ url_for('static', filename='img/pests/acrididae.jpg') }}" alt="Locusts" class="pest-card-img">
+                <div class="pest-card-body">
+                    <h5>Locusts / Grasshoppers</h5>
+                    <div class="pest-family">Acrididae</div>
+                    <div class="pest-tagalog">Balang</div>
+                    <div class="control-methods">
+                        <span class="control-tag bio">Biological</span>
+                        <span class="control-tag cultural">Cultural</span>
+                        <span class="control-tag chemical">Chemical</span>
+                    </div>
+                </div>
+            </div>
+            <div class="pest-card">
+                <img src="{{ url_for('static', filename='img/pests/coreidae.jpg') }}" alt="Horned Coreid Bugs" class="pest-card-img">
+                <div class="pest-card-body">
+                    <h5>Horned Coreid Bugs</h5>
+                    <div class="pest-family">Coreidae</div>
+                    <div class="pest-tagalog">Atangya</div>
+                    <div class="control-methods">
+                        <span class="control-tag bio">Biological</span>
+                        <span class="control-tag cultural">Cultural</span>
+                        <span class="control-tag chemical">Chemical</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== ABOUT ===== -->
+    <section id="about" class="landing-section">
+        <div class="text-center mb-4">
+            <span class="section-label">About</span>
+            <h2 class="section-heading">Built for the farming communities<br>of Cavite.</h2>
+            <p class="section-desc centered">SPIM is a thesis project developed by CVSu AgriTech to modernize agricultural pest monitoring. Our early outreach included collaboration with the farming communities of Naic, Cavite.</p>
+        </div>
+        <div class="about-grid mt-4">
+            <div class="about-card">
+                <span class="about-label">The Problem</span>
+                <h4>Manual scouting is slow and unreliable</h4>
+                <p>Farmers rely on experience and guesswork to determine pest threats, leading to delayed responses, crop damage, and economic loss.</p>
+            </div>
+            <div class="about-card">
+                <span class="about-label">The Solution</span>
+                <h4>Edge AI meets community monitoring</h4>
+                <p>SPIM deploys YOLOv8s directly on-device for real-time pest detection, paired with cloud-synced municipal logging for a complete threat picture.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== DOWNLOAD ===== -->
+    <section id="download" class="download-section">
+        <span class="section-label">Download</span>
+        <h2 class="section-heading mt-2 mb-3">Get SPIM on your phone.</h2>
+        <p class="section-desc centered mb-4">Download the latest version and start scanning, identifying, and tracking pests in your fields today.</p>
+        <a href="{{ url_for('download_latest') }}" class="btn-download">
+            <i class="bi bi-android2" style="font-size: 1.2rem;"></i>
+            Download for Android
+        </a>
+        <p class="download-note">Always downloads the latest release from GitHub</p>
+    </section>
+</div>
+{% endblock %}

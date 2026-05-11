@@ -4,12 +4,14 @@ import random
 import io
 import csv
 from datetime import datetime, timedelta
+import urllib.request
+import urllib.error
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_from_directory, make_response
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_cors import CORS
-from models import db, User, DetectionRecord, CountingRecord, Notification, Recommendation
+from models import db, User, DetectionRecord, CountingRecord, Notification, Recommendation, SystemConfig
 from utils import parse_breakdown
 import firebase_admin
 from firebase_admin import credentials, messaging
@@ -380,13 +382,40 @@ def register_device_token():
     return jsonify({"message": "Device token registered successfully"}), 200
 
 
+# --- Configurable Threshold Helpers ---
+def get_alert_thresholds():
+    """
+    Returns (low_min, med_min, high_min) from DB or defaults.
+    - low_min: minimum pest count for Low alert (default 1)
+    - med_min: minimum pest count for Medium alert (default 6)
+    - high_min: minimum pest count for High alert (default 16)
+    """
+    low = int(SystemConfig.get('threshold_low', '1'))
+    med = int(SystemConfig.get('threshold_medium', '6'))
+    high = int(SystemConfig.get('threshold_high', '16'))
+    return low, med, high
+
+
+def get_heatmap_color(pest_count):
+    """Returns heatmap color string based on configurable thresholds."""
+    low_min, med_min, high_min = get_alert_thresholds()
+    if pest_count == 0:
+        return 'gray'
+    elif pest_count >= high_min:
+        return 'red'
+    elif pest_count >= med_min:
+        return 'orange'
+    elif pest_count >= low_min:
+        return 'yellow'
+    return 'gray'
+
+
 # Helper Function for Auto-Threshold
 def check_infestation_threshold(user_id, municipality, is_test=False):
-    # Logic: Align with Heatmap Legend
-    # Red (>15 Pests): High Alert
-    # Orange (6-15 Pests): Medium Alert
-    # Yellow (1-5 Pests): Low Alert
+    # Logic: Align with Heatmap Legend (configurable thresholds)
     # Scope: TODAY'S activity
+    
+    low_min, med_min, high_min = get_alert_thresholds()
     
     now_ph = datetime.utcnow() + timedelta(hours=8)
     today_start = now_ph.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -408,13 +437,13 @@ def check_infestation_threshold(user_id, municipality, is_test=False):
         else:
              pests += c.total_count
 
-    # 2. Determine Severity
+    # 2. Determine Severity (using configurable thresholds)
     level = None
-    if pests > 15:
+    if pests >= high_min:
         level = 'High'
-    elif pests > 5:
+    elif pests >= med_min:
         level = 'Medium'
-    elif pests >= 1:
+    elif pests >= low_min:
         level = 'Low'
     
     if not level:
@@ -513,7 +542,19 @@ def index():
         elif current_user.role == 'developer':
             return redirect(url_for('developer_dashboard'))
         return redirect(url_for('dashboard'))
-    return redirect(url_for('login'))
+        
+    # Fetch real stats for landing page
+    total_farmers = User.query.filter_by(role='farmer').count()
+    
+    total_pests = DetectionRecord.query.count()
+    for record in CountingRecord.query.all():
+        data = parse_breakdown(record.breakdown)
+        if data:
+            total_pests += sum(data.values())
+        else:
+            total_pests += record.total_count
+
+    return render_template('index.html', total_farmers=total_farmers, total_pests=total_pests)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -623,6 +664,36 @@ def identify():
 def count_insects():
     flash("Please use the SPIM Mobile App to count insects.", "info")
     return redirect(url_for('dashboard'))
+
+@app.route('/documentation')
+def documentation():
+    return render_template('documentation.html')
+
+@app.route('/download')
+def download_latest():
+    """
+    Dynamically fetches the latest release from GitHub and redirects
+    to the first .apk asset found. If no APK exists yet, redirects
+    to the releases page itself so the user can check manually.
+    This keeps up with every new release automatically.
+    """
+    github_api = "https://api.github.com/repos/Robinih/SPIMv2/releases"
+    fallback_url = "https://github.com/Robinih/SPIMv2/releases/latest"
+    try:
+        req = urllib.request.Request(github_api, headers={'User-Agent': 'SPIM-Web'})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            releases = json.loads(resp.read().decode())
+        
+        if releases:
+            for release in releases:
+                for asset in release.get('assets', []):
+                    if asset.get('name', '').endswith('.apk'):
+                        return redirect(asset['browser_download_url'])
+        
+        # No APK found in any release
+        return redirect(fallback_url)
+    except Exception:
+        return redirect(fallback_url)
 
 @app.route('/dashboard')
 @login_required
@@ -966,17 +1037,8 @@ def admin_dashboard():
                 for insect, safe_count in data.items():
                     u_pests += safe_count
         
-        # Determine color (New Logic)
-        color = 'gray'
-        if u_pests == 0:
-            color = 'gray'
-        else:
-            if u_pests > 15:
-                color = 'red'
-            elif u_pests > 5: # 6 to 15
-                color = 'orange'
-            else: # 1 to 5
-                color = 'yellow'
+        # Determine color using configurable thresholds
+        color = get_heatmap_color(u_pests)
 
         if u.latitude and u.longitude:
             map_data.append({
@@ -1092,6 +1154,8 @@ def admin_dashboard():
     # 7. Extract Unique Filter Data
     unique_insects = sorted(list(set(log['insect_name'] for log in all_logs)))
     unique_barangays = sorted(list(NAIC_BARANGAY_COORDS.keys()))
+    
+    low_min, med_min, high_min = get_alert_thresholds()
 
     return render_template('dashboard_admin.html', 
                            map_data=map_data, 
@@ -1106,7 +1170,10 @@ def admin_dashboard():
                            current_range_display=current_range_display,
                            start_date=request.args.get('start_date', ''),
                            end_date=request.args.get('end_date', ''),
-                           alert_count=alert_count)
+                           alert_count=alert_count,
+                           threshold_low=low_min,
+                           threshold_medium=med_min,
+                           threshold_high=high_min)
 
 @app.route('/developer/dashboard')
 @login_required
@@ -1194,12 +1261,7 @@ def developer_dashboard():
                 for insect, safe_count in data.items():
                     u_pests += safe_count
 
-        color = 'gray'
-        if u_pests == 0: color = 'gray'
-        else:
-            if u_pests > 15: color = 'red'
-            elif u_pests > 5: color = 'orange'
-            else: color = 'yellow'
+        color = get_heatmap_color(u_pests)
 
         if u.latitude and u.longitude:
             map_data.append({
@@ -1266,6 +1328,8 @@ def developer_dashboard():
     unique_insects = sorted(list(set(log['insect_name'] for log in all_logs)))
     unique_barangays = sorted(list(NAIC_BARANGAY_COORDS.keys()))
 
+    low_min, med_min, high_min = get_alert_thresholds()
+
     return render_template('dashboard_developer.html', 
                            map_data=map_data, logs=all_logs, farmers=all_farmers,
                            chart_daily=chart_daily, chart_insects=chart_insects,
@@ -1274,7 +1338,10 @@ def developer_dashboard():
                            current_range_display=current_range_display,
                            start_date=request.args.get('start_date', ''),
                            end_date=request.args.get('end_date', ''),
-                           alert_count=alert_count)
+                           alert_count=alert_count,
+                           threshold_low=low_min,
+                           threshold_medium=med_min,
+                           threshold_high=high_min)
 
 @app.route('/admin/recommendation/status', methods=['POST'])
 @login_required
@@ -1560,6 +1627,23 @@ def batch_delete_farmers():
 @login_required
 def admin_heatmap():
     return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/settings/thresholds', methods=['POST'])
+@login_required
+def update_thresholds():
+    if current_user.role != 'admin':
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('dashboard'))
+        
+    try:
+        SystemConfig.set('threshold_low', request.form.get('threshold_low', 1))
+        SystemConfig.set('threshold_medium', request.form.get('threshold_medium', 6))
+        SystemConfig.set('threshold_high', request.form.get('threshold_high', 16))
+        flash('Alert thresholds updated successfully.', 'success')
+    except Exception as e:
+        flash(f'Error updating thresholds: {e}', 'danger')
+        
+    return redirect(url_for('admin_dashboard', _anchor='alerts'))
 
 from datetime import datetime
 
