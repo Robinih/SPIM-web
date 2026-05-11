@@ -27,7 +27,7 @@
             </div>
             <div>
                 <div class="kpi-label">Detections</div>
-                <div class="kpi-value">{{ logs|length }}</div>
+                <div class="kpi-value">{{ logs | sum(attribute='count_val') }}</div>
             </div>
         </div>
     </div>
