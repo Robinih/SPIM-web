@@ -1095,7 +1095,7 @@ def admin_dashboard():
                 "id": c.id,
                 "timestamp": c.timestamp,
                 "user": c.user,
-                "insect_name": "Unknown/Error",
+                "insect_name": "Mixed Pests",
                 "is_beneficial": False, 
                 "count_val": c.total_count,
                 "confidence": None,
@@ -1293,7 +1293,7 @@ def developer_dashboard():
         else:
             all_logs.append({
                 "type": "Count", "id": c.id, "timestamp": c.timestamp, "user": c.user,
-                "insect_name": "Mixed Count", "is_beneficial": False, 
+                "insect_name": "Mixed Pests", "is_beneficial": False, 
                 "count_val": c.total_count, "confidence": None, "image_file": c.image_file, "raw_obj": c
             })
 
@@ -1424,7 +1424,7 @@ def export_data():
     cw = csv.writer(si)
     
     # Header
-    cw.writerow(['Type', 'ID', 'Timestamp', 'User', 'Municipality', 'Insect', 'Count', 'Status'])
+    cw.writerow(['Type', 'ID', 'Timestamp', 'User', 'Municipality', 'Pest', 'Count', 'Status'])
     
     # Detections
     for d in detections:
@@ -1441,7 +1441,7 @@ def export_data():
             continue
         
         # Fallback if no breakdown or parse error
-        cw.writerow(['Count', c.id, c.timestamp, c.user.full_name, c.user.municipality, 'Mixed/Unknown', c.total_count, 'Pest'])
+        cw.writerow(['Count', c.id, c.timestamp, c.user.full_name, c.user.municipality, 'Mixed Pests', c.total_count, 'Pest'])
         
     
     # Construct filename
